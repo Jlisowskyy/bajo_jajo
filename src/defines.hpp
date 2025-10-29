@@ -1,7 +1,11 @@
 #ifndef DEFINES_HPP
 #define DEFINES_HPP
 
-#define NODISCARD [[nodiscard]]
+#include <cstdint>
+
+#define NODISCARD   [[nodiscard]]
 #define FUNC_INLINE inline __attribute__((always_inline))
 
-#endif //DEFINES_HPP
+static constexpr std::uint32_t kSeed = 0xAB98142De;
+
+#endif  // DEFINES_HPP
