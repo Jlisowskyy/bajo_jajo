@@ -109,11 +109,25 @@ class Graph
         }
     }
 
+    template <class Func>
+    void IterateEdges(Func func)
+    {
+        for (std::uint32_t u = 0; u < vertices_; ++u) {
+            for (std::uint32_t v = 0; v < vertices_; ++v) {
+                if (const std::uint32_t edges = GetEdges(u, v); edges != 0) {
+                    func(edges, u, v);
+                }
+            }
+        }
+    }
+
     private:
     NODISCARD FUNC_INLINE std::uint32_t &GetEdges_(const std::uint32_t u, const std::uint32_t v)
     {
         assert(u < vertices_);
         assert(v < vertices_);
+        assert(u != v);
+
         return neighbourhood_matrix_[u * vertices_ + v];
     }
 
@@ -121,6 +135,8 @@ class Graph
     {
         assert(u < vertices_);
         assert(v < vertices_);
+        assert(u != v);
+
         return neighbourhood_matrix_[u * vertices_ + v];
     }
 
