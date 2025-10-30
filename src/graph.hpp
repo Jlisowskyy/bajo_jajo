@@ -73,9 +73,6 @@ class Graph
         assert(v < static_cast<std::uint32_t>(vertices_));
 
         for (std::uint32_t u = 0; u < static_cast<std::uint32_t>(vertices_); ++u) {
-            if (u == v)
-                continue;
-
             if (const std::uint32_t edges = GetEdges(v, u); edges != 0) {
                 func(edges, u);
             }
@@ -88,9 +85,6 @@ class Graph
         assert(v < static_cast<std::uint32_t>(vertices_));
 
         for (std::uint32_t u = 0; u < static_cast<std::uint32_t>(vertices_); ++u) {
-            if (u == v)
-                continue;
-
             if (const std::uint32_t edges = GetEdges(u, v); edges != 0) {
                 func(edges, u);
             }
@@ -103,18 +97,12 @@ class Graph
         assert(v < static_cast<std::uint32_t>(vertices_));
 
         for (std::uint32_t u = 0; u < static_cast<std::uint32_t>(vertices_); ++u) {
-            if (u == v)
-                continue;
-
             if (const std::uint32_t edges = GetEdges(v, u); edges != 0) {
                 func(edges, v, u);
             }
         }
 
         for (std::uint32_t u = 0; u < static_cast<std::uint32_t>(vertices_); ++u) {
-            if (u == v)
-                continue;
-
             if (const std::uint32_t edges = GetEdges(u, v); edges != 0) {
                 func(edges, u, v);
             }
@@ -126,9 +114,6 @@ class Graph
     {
         for (std::uint32_t u = 0; u < static_cast<std::uint32_t>(vertices_); ++u) {
             for (std::uint32_t v = 0; v < static_cast<std::uint32_t>(vertices_); ++v) {
-                if (u == v)
-                    continue;
-
                 if (const std::uint32_t edges = GetEdges(u, v); edges != 0) {
                     func(edges, u, v);
                 }
@@ -141,7 +126,6 @@ class Graph
     {
         assert(u < static_cast<std::uint32_t>(vertices_));
         assert(v < static_cast<std::uint32_t>(vertices_));
-        assert(u != v);
 
         return neighbourhood_matrix_[u * vertices_ + v];
     }
@@ -150,7 +134,6 @@ class Graph
     {
         assert(u < static_cast<std::uint32_t>(vertices_));
         assert(v < static_cast<std::uint32_t>(vertices_));
-        assert(u != v);
 
         return neighbourhood_matrix_[u * vertices_ + v];
     }
