@@ -70,5 +70,5 @@ std::tuple<Graph, Graph> GenerateExample(
         });
     }
 
-    return std::make_tuple(g1, g2);
+    return std::make_tuple(std::move(g1), std::move(g2));
 }
