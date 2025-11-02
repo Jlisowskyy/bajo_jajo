@@ -10,7 +10,7 @@
 class Mapping
 {
     public:
-    Mapping(const size_t size_g1, const size_t size_g2) : size_g1_(size_g1), size_g2_(size_g2)
+    Mapping(const size_t size_g1, const size_t size_g2) : size_g1_(size_g1), size_g2_(size_g2), mapped_count_(0)
     {
         mapping_         = new std::int32_t[size_g1_];
         reverse_mapping_ = new std::int32_t[size_g2_];
@@ -25,7 +25,8 @@ class Mapping
         delete[] reverse_mapping_;
     }
 
-    Mapping(const Mapping &other) : size_g1_(other.size_g1_), size_g2_(other.size_g2_)
+    Mapping(const Mapping &other)
+        : size_g1_(other.size_g1_), size_g2_(other.size_g2_), mapped_count_(other.mapped_count_)
     {
         mapping_         = new std::int32_t[size_g1_];
         reverse_mapping_ = new std::int32_t[size_g2_];
@@ -47,6 +48,7 @@ class Mapping
             }
             std::copy(other.mapping_, other.mapping_ + size_g1_, mapping_);
             std::copy(other.reverse_mapping_, other.reverse_mapping_ + size_g2_, reverse_mapping_);
+            mapped_count_ = other.mapped_count_;
         }
         return *this;
     }
@@ -56,6 +58,9 @@ class Mapping
         if (g1_index < 0 || g1_index >= size_g1_ || g2_index < 0 || g2_index >= size_g2_) {
             return false;
         }
+
+        bool was_g1_mapped = (mapping_[g1_index] != -1);
+        bool was_g2_mapped = (reverse_mapping_[g2_index] != -1);
 
         if (mapping_[g1_index] != -1) {
             if (mapping_[g1_index] != g2_index) {
@@ -72,6 +77,10 @@ class Mapping
         mapping_[g1_index]         = g2_index;
         reverse_mapping_[g2_index] = g1_index;
 
+        if (!was_g1_mapped && !was_g2_mapped) {
+            mapped_count_++;
+        }
+
         return true;
     }
 
@@ -84,6 +93,7 @@ class Mapping
         const std::int32_t g2_index = mapping_[g1_index];
         mapping_[g1_index]          = -1;
         reverse_mapping_[g2_index]  = -1;
+        mapped_count_--;
         return true;
     }
 
@@ -96,6 +106,7 @@ class Mapping
         const std::int32_t g1_index = reverse_mapping_[g2_index];
         mapping_[g1_index]          = -1;
         reverse_mapping_[g2_index]  = -1;
+        mapped_count_--;
         return true;
     }
 
@@ -122,12 +133,15 @@ class Mapping
         return g2_index < size_g2_ && reverse_mapping_[g2_index] != -1;
     }
 
+    std::int32_t get_mapped_count() const { return mapped_count_; }
+
     private:
     std::int32_t *mapping_;         /* g1 -> g2. Stores -1 if no mapping. */
     std::int32_t *reverse_mapping_; /* g2 -> g1. Stores -1 if no mapping. */
 
     std::int32_t size_g1_;
     std::int32_t size_g2_;
+    std::int32_t mapped_count_;
 };
 
 struct State {

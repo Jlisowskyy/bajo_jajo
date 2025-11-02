@@ -6,14 +6,17 @@
 #include "mcts.hpp"
 #include "random_gen.hpp"
 
-void PrintState(const State& state, const MCTS& mcts)
+void PrintState(const State &state, const MCTS &mcts)
 {
     std::cout << "\n=== Best Mapping Found ===" << std::endl;
     std::cout << "G1 Vertex -> G2 Vertex" << std::endl;
     std::cout << "----------------------" << std::endl;
 
-    for (const auto& [g1_vertex, g2_vertex] : state.mapping) {
-        std::cout << std::setw(9) << g1_vertex << " -> " << std::setw(9) << g2_vertex << std::endl;
+    for (std::int32_t g1_vertex = 0; g1_vertex < state.size_g1_; ++g1_vertex) {
+        std::int32_t g2_vertex = state.mapping.get_mapping_g1_to_g2(g1_vertex);
+        if (g2_vertex != -1) {
+            std::cout << std::setw(9) << g1_vertex << " -> " << std::setw(9) << g2_vertex << std::endl;
+        }
     }
 
     int missing_edges = mcts.CalculateMissingEdges(state);
@@ -21,18 +24,17 @@ void PrintState(const State& state, const MCTS& mcts)
     std::cout << "Minimum edges to add to G2: " << missing_edges << std::endl;
 }
 
-void PrintGraphInfo(const Graph& g, const std::string& name)
+void PrintGraphInfo(const Graph &g, const std::string &name)
 {
     std::cout << name << ": " << g.GetVertices() << " vertices, " << g.GetEdges() << " edges" << std::endl;
 }
 
 extern int LibMain()
 {
-    // Default parameters
     std::uint32_t size_g1      = 5;
     std::uint32_t size_g2      = 8;
-    double density_g1          = 0.3;
-    double density_g2          = 0.4;
+    double density_g1          = 3;
+    double density_g2          = 5;
     bool create_g1_based_on_g2 = false;
     int mcts_iterations        = 10000;
 
@@ -47,7 +49,6 @@ extern int LibMain()
     std::cout << "  MCTS iterations: " << mcts_iterations << std::endl;
     std::cout << std::endl;
 
-    // Generate graphs
     auto [g1, g2] = GenerateExample(size_g1, size_g2, density_g1, density_g2, create_g1_based_on_g2);
 
     PrintGraphInfo(g1, "G1");
@@ -55,13 +56,10 @@ extern int LibMain()
 
     std::cout << "\nRunning MCTS search..." << std::endl;
 
-    // Create MCTS solver
     MCTS mcts(g1, g2);
 
-    // Run search
     State best_state = mcts.Search(mcts_iterations);
 
-    // Print results
     PrintState(best_state, mcts);
 
     std::cout << "\n=== Interpretation ===" << std::endl;
