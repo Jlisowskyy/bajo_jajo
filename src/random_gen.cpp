@@ -7,20 +7,17 @@
 static std::mt19937 g_Gen(kSeed);
 
 // in case of create_g1_based_on_g2 density_g1 should be in range [0.0, 1.0]
-std::tuple<Graph, Graph> GenerateExample(
-    const std::uint32_t size_g1, const std::uint32_t size_g2, const double density_g1, const double density_g2,
-    const bool create_g1_based_on_g2
-)
+std::tuple<Graph, Graph> GenerateExample(const GraphSpec spec)
 {
-    assert(size_g1 != 0);
-    assert(size_g2 != 0);
+    assert(spec.size_g1 != 0);
+    assert(spec.size_g2 != 0);
 
-    Graph g1(size_g1);
-    Graph g2(size_g2);
+    Graph g1(spec.size_g1);
+    Graph g2(spec.size_g2);
 
     // Populate big graph
-    const auto edges_g2 = static_cast<std::uint32_t>(density_g2 * size_g2);
-    std::uniform_int_distribution<std::uint32_t> dist_g2(0, size_g2 - 1);
+    const auto edges_g2 = static_cast<std::uint32_t>(spec.density_g2 * spec.size_g2);
+    std::uniform_int_distribution<std::uint32_t> dist_g2(0, spec.size_g2 - 1);
     for (std::uint32_t i = 0; i < edges_g2; ++i) {
         const std::uint32_t v1 = dist_g2(g_Gen);
         const std::uint32_t v2 = dist_g2(g_Gen);
@@ -28,9 +25,9 @@ std::tuple<Graph, Graph> GenerateExample(
         g2.AddEdges(v1, v2);
     }
 
-    if (!create_g1_based_on_g2) {
-        const auto edges_g1 = static_cast<std::uint32_t>(density_g1 * size_g1);
-        std::uniform_int_distribution<std::uint32_t> dist_g1(0, size_g1 - 1);
+    if (!spec.create_g1_based_on_g2) {
+        const auto edges_g1 = static_cast<std::uint32_t>(spec.density_g1 * spec.size_g1);
+        std::uniform_int_distribution<std::uint32_t> dist_g1(0, spec.size_g1 - 1);
 
         for (std::uint32_t i = 0; i < edges_g1; ++i) {
             const std::uint32_t v1 = dist_g1(g_Gen);
@@ -39,12 +36,12 @@ std::tuple<Graph, Graph> GenerateExample(
             g1.AddEdges(v1, v2);
         }
     } else {
-        assert(size_g1 <= size_g2);
+        assert(spec.size_g1 <= spec.size_g2);
 
         // Pick size_g1 vertices from G2
         std::unordered_set<std::uint32_t> selected_vertices_g2{};
 
-        while (selected_vertices_g2.size() != size_g1) {
+        while (selected_vertices_g2.size() != spec.size_g1) {
             const std::uint32_t v = dist_g2(g_Gen);
             selected_vertices_g2.insert(v);
         }
@@ -74,7 +71,7 @@ std::tuple<Graph, Graph> GenerateExample(
 
         // Remove edges based on density_g1 (acts as a keep probability)
         std::uniform_real_distribution dist(0.0, 1.0);
-        const double removal_prob = 1.0 - density_g1;
+        const double removal_prob = 1.0 - spec.density_g1;
         g1.IterateEdges([&](const std::uint32_t edges, const std::uint32_t u, const std::uint32_t v) {
             for (std::uint32_t i = 0; i < edges; ++i) {
                 if (dist(g_Gen) < removal_prob) {

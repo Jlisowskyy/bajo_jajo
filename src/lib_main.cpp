@@ -1,3 +1,7 @@
 #include "test_framework.hpp"
 
-extern int LibMain() { return 0; }
+extern int LibMain()
+{
+    TestCorrectnessApproxOnPrecise(ApproxAlgo::kMcts, PreciseAlgo::kBruteForce);
+    return 0;
+}
