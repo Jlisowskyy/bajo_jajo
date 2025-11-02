@@ -68,7 +68,7 @@ class Graph
     NODISCARD FUNC_INLINE std::uint32_t GetEdges() const { return static_cast<std::uint32_t>(num_edges_); }
 
     template <class Func>
-    void IterateOutEdges(Func func, const std::uint32_t v)
+    void IterateOutEdges(Func func, const std::uint32_t v) const
     {
         assert(v < static_cast<std::uint32_t>(vertices_));
 
@@ -80,7 +80,7 @@ class Graph
     }
 
     template <class Func>
-    void IterateInEdges(Func func, const std::uint32_t v)
+    void IterateInEdges(Func func, const std::uint32_t v) const
     {
         assert(v < static_cast<std::uint32_t>(vertices_));
 
@@ -92,7 +92,7 @@ class Graph
     }
 
     template <class Func>
-    void IterateEdges(Func func, const std::uint32_t v)
+    void IterateEdges(Func func, const std::uint32_t v) const
     {
         assert(v < static_cast<std::uint32_t>(vertices_));
 
