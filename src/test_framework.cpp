@@ -163,6 +163,10 @@ void TestCorrectnessApproxOnPrecise(const ApproxAlgo approx_algo_enum, const Pre
         int approx_cost                                       = CalculateMissingEdges(g1, g2, approx_mapping);
         bool approx_mapping_ok                                = VerifyMapping(g1, g2, approx_mapping);
 
+        if (approx_cost < precise_cost) {
+            approx_mapping_ok = false;
+        }
+
         std::cout << std::left << std::setw(6) << i << std::setw(8) << spec.size_g1 << std::setw(8) << spec.size_g2
                   << std::setw(8) << std::fixed << std::setprecision(1) << spec.density_g1 << std::setw(8) << std::fixed
                   << std::setprecision(1) << spec.density_g2 << std::setw(10)
