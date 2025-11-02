@@ -148,10 +148,10 @@ static void RunTest_(const CollT &cases, std::tuple<SigT, const char *> algo0, s
 }
 
 // ------------------------------
-// ApproxOnPrecise
+// Test cases
 // ------------------------------
 
-static constexpr std::array ApproxOnPreciseSpec = {
+static constexpr std::array PreciseSpec = {
     GraphSpec{ 3,  3, 1.5, 1.0, false},
     GraphSpec{ 4,  4, 2.0, 0.7, false},
     GraphSpec{ 5,  5, 0.8, 1.2, false},
@@ -181,10 +181,16 @@ static constexpr std::array ApproxOnPreciseSpec = {
     GraphSpec{12, 12, 0.9, 2.1,  true},
 };
 
-void TestCorrectnessApproxOnPrecise(const ApproxAlgo approx_algo_enum, const PreciseAlgo precise_algo_enum)
+static constexpr std::array ApproxSpec = {};
+
+// ------------------------------
+// ApproxOnPrecise
+// ------------------------------
+
+void TestApproxOnPrecise(const ApproxAlgo approx_algo_enum, const PreciseAlgo precise_algo_enum)
 {
     RunTest_(
-        ApproxOnPreciseSpec, kApproxAlgos[static_cast<size_t>(approx_algo_enum)],
+        PreciseSpec, kApproxAlgos[static_cast<size_t>(approx_algo_enum)],
         kPreciseAlgos[static_cast<size_t>(precise_algo_enum)]
     );
 }
@@ -193,16 +199,20 @@ void TestCorrectnessApproxOnPrecise(const ApproxAlgo approx_algo_enum, const Pre
 // PreciseOnPrecise
 // ------------------------------
 
-void TestCorrectnessPreciseOnPrecise(PreciseAlgo precise_algo, PreciseAlgo precise_algo1) {}
+void TestPreciseOnPrecise(PreciseAlgo precise_algo, PreciseAlgo precise_algo1)
+{
+    RunTest_(
+        PreciseSpec, kPreciseAlgos[static_cast<size_t>(precise_algo)], kPreciseAlgos[static_cast<size_t>(precise_algo1)]
+    );
+}
 
 // ------------------------------
 // ApproxOnApproxTime
 // ------------------------------
 
-void TestApproxOnApproxTime(ApproxAlgo approx_algo, ApproxAlgo approx_algo1) {}
-
-// ------------------------------
-// PreciseOnPreciseTime
-// ------------------------------
-
-void TestPreciseOnPreciseTime(PreciseAlgo precise_algo, PreciseAlgo precise_algo1) {}
+void TestApproxOnApprox(ApproxAlgo approx_algo, ApproxAlgo approx_algo1)
+{
+    RunTest_(
+        ApproxSpec, kApproxAlgos[static_cast<size_t>(approx_algo)], kApproxAlgos[static_cast<size_t>(approx_algo1)]
+    );
+}
