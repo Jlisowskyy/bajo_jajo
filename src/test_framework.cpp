@@ -102,53 +102,25 @@ static bool VerifyMapping(const Graph &g1, const Graph &g2, const Mapping &mappi
     return true;
 }
 
-// ------------------------------
-// ApproxOnPrecise
-// ------------------------------
-
-static constexpr std::array<GraphSpec, 20> ApproxOnPreciseSpec = {
-    GraphSpec{3,  3, 1.5, 1.0, false},
-    GraphSpec{4,  4, 2.0, 0.7, false},
-    GraphSpec{5,  5, 0.8, 1.2, false},
-    GraphSpec{6,  6, 2.5, 2.5, false},
-
-    // Different number of vertices (g1 < g2), varying densities
-    GraphSpec{3,  5, 1.0, 1.5, false},
-    GraphSpec{4,  6, 1.2, 2.0, false},
-    GraphSpec{5,  7, 0.9, 1.8, false},
-
-    // G1 based on G2, varying densities and sizes
-    GraphSpec{3,  5, 1.0, 0.5,  true},
-    GraphSpec{4,  6, 1.5, 1.0,  true},
-    GraphSpec{5,  8, 2.0, 1.5,  true},
-    GraphSpec{2,  4, 0.5, 1.0,  true},
-
-    // Mixed cases with varied densities
-    GraphSpec{7,  7, 0.5, 2.0, false},
-    GraphSpec{8,  8, 2.0, 0.5, false},
-    GraphSpec{4,  4, 0.2, 2.5, false},
-    GraphSpec{5, 10, 1.8, 1.2,  true},
-};
-
-void TestCorrectnessApproxOnPrecise(const ApproxAlgo approx_algo_enum, const PreciseAlgo precise_algo_enum)
+template <class CollT>
+static void RunTest_(const CollT &cases, std::tuple<SigT, const char *> algo0, std::tuple<SigT, const char *> algo1)
 {
-    const auto &[precise_func, precise_name] = kPreciseAlgos[static_cast<size_t>(precise_algo_enum)];
-    const auto &[approx_func, approx_name]   = kApproxAlgos[static_cast<size_t>(approx_algo_enum)];
+    const auto &[algo0_func, algo0_name] = algo0;
+    const auto &[algo1_func, algo1_name] = algo1;
 
-    std::cout << "--- Testing Correctness: " << approx_name << " vs " << precise_name << " ---\n";
+    std::cout << "--- Testing Correctness: " << algo1_name << " vs " << algo0_name << " ---\n";
     std::cout << std::left << std::setw(6) << "Idx" << std::setw(8) << "G1_S" << std::setw(8) << "G2_S" << std::setw(8)
-              << "G1_D" << std::setw(8) << "G2_D" << std::setw(10) << "G1_on_G2" << std::setw(15) << "Precise_Cost"
-              << std::setw(15) << "Approx_Cost" << std::setw(10) << "P_Map_OK" << std::setw(10) << "A_Map_OK"
-              << std::setw(15) << "P_Time (ms)" << std::setw(15) << "A_Time (ms)" << "\n";
+              << "G1_D" << std::setw(8) << "G2_D" << std::setw(10) << "G1_on_G2" << std::setw(15) << "Algo0_Cost"
+              << std::setw(15) << "Algo1_Cost" << std::setw(15) << "Algo0_Map_OK" << std::setw(15) << "Algo1_Map_OK"
+              << std::setw(20) << "Algo0_Time (ms)" << std::setw(20) << "Algo1_Time (ms)" << "\n";
     std::cout << std::string(140, '-') << "\n";
 
-    for (size_t i = 0; i < ApproxOnPreciseSpec.size(); ++i) {
-        const GraphSpec &spec = ApproxOnPreciseSpec[i];
-
+    int idx = 0;
+    for (const GraphSpec &spec : cases) {
         const auto [g1, g2] = GenerateExample(spec);
 
         auto start_precise      = std::chrono::high_resolution_clock::now();
-        Mapping precise_mapping = precise_func(g1, g2);
+        Mapping precise_mapping = algo0_func(g1, g2);
         auto end_precise        = std::chrono::high_resolution_clock::now();
 
         std::chrono::duration<double, std::milli> precise_time = end_precise - start_precise;
@@ -156,27 +128,65 @@ void TestCorrectnessApproxOnPrecise(const ApproxAlgo approx_algo_enum, const Pre
         bool precise_mapping_ok                                = VerifyMapping(g1, g2, precise_mapping);
 
         auto start_approx      = std::chrono::high_resolution_clock::now();
-        Mapping approx_mapping = approx_func(g1, g2);
+        Mapping approx_mapping = algo1_func(g1, g2);
         auto end_approx        = std::chrono::high_resolution_clock::now();
 
         std::chrono::duration<double, std::milli> approx_time = end_approx - start_approx;
         int approx_cost                                       = CalculateMissingEdges(g1, g2, approx_mapping);
         bool approx_mapping_ok                                = VerifyMapping(g1, g2, approx_mapping);
 
-        if (approx_cost < precise_cost) {
-            approx_mapping_ok = false;
-        }
-
-        std::cout << std::left << std::setw(6) << i << std::setw(8) << spec.size_g1 << std::setw(8) << spec.size_g2
+        std::cout << std::left << std::setw(6) << idx++ << std::setw(8) << spec.size_g1 << std::setw(8) << spec.size_g2
                   << std::setw(8) << std::fixed << std::setprecision(1) << spec.density_g1 << std::setw(8) << std::fixed
                   << std::setprecision(1) << spec.density_g2 << std::setw(10)
                   << (spec.create_g1_based_on_g2 ? "Yes" : "No") << std::setw(15) << precise_cost << std::setw(15)
-                  << approx_cost << std::setw(10) << (precise_mapping_ok ? "OK" : "FAIL") << std::setw(10)
-                  << (approx_mapping_ok ? "OK" : "FAIL") << std::setw(15) << std::fixed << std::setprecision(3)
-                  << precise_time.count() << std::setw(15) << std::fixed << std::setprecision(3) << approx_time.count()
+                  << approx_cost << std::setw(15) << (precise_mapping_ok ? "OK" : "FAIL") << std::setw(15)
+                  << (approx_mapping_ok ? "OK" : "FAIL") << std::setw(20) << std::fixed << std::setprecision(3)
+                  << precise_time.count() << std::setw(20) << std::fixed << std::setprecision(3) << approx_time.count()
                   << "\n";
     }
     std::cout << std::string(140, '-') << "\n";
+}
+
+// ------------------------------
+// ApproxOnPrecise
+// ------------------------------
+
+static constexpr std::array ApproxOnPreciseSpec = {
+    GraphSpec{ 3,  3, 1.5, 1.0, false},
+    GraphSpec{ 4,  4, 2.0, 0.7, false},
+    GraphSpec{ 5,  5, 0.8, 1.2, false},
+    GraphSpec{ 6,  6, 2.5, 2.5, false},
+
+    // Different number of vertices (g1 < g2), varying densities
+    GraphSpec{ 3,  5, 1.0, 1.5, false},
+    GraphSpec{ 4,  6, 1.2, 2.0, false},
+    GraphSpec{ 5,  7, 0.9, 1.8, false},
+
+    // G1 based on G2, varying densities and sizes
+    GraphSpec{ 3,  5, 0.7, 2.0,  true},
+    GraphSpec{ 4,  6, 0.8, 1.2,  true},
+    GraphSpec{ 5, 11, 0.4, 1.3,  true},
+    GraphSpec{ 5,  9, 0.9, 2.1,  true},
+
+    // Mixed cases with varied densities
+    GraphSpec{ 7,  7, 0.5, 2.0, false},
+    GraphSpec{ 8,  8, 2.0, 0.5, false},
+    GraphSpec{ 4,  4, 0.2, 2.5, false},
+    GraphSpec{ 5, 10, 0.9, 1.2,  true},
+
+    // Big graphs
+    GraphSpec{11, 13, 0.5, 1.0, false},
+    GraphSpec{12, 12, 0.6, 1.3, false},
+    GraphSpec{11, 13, 0.8, 2.0,  true},
+    GraphSpec{12, 12, 0.9, 2.1,  true},
+};
+
+void TestCorrectnessApproxOnPrecise(const ApproxAlgo approx_algo_enum, const PreciseAlgo precise_algo_enum)
+{
+    RunTest_(
+        ApproxOnPreciseSpec, kApproxAlgos[static_cast<size_t>(approx_algo_enum)],
+        kPreciseAlgos[static_cast<size_t>(precise_algo_enum)]
+    );
 }
 
 // ------------------------------

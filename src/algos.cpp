@@ -97,7 +97,7 @@ NODISCARD Mapping AccurateAStar(const Graph &g1, const Graph &g2) {}
 
 NODISCARD Mapping Mcts(const Graph &g1, const Graph &g2)
 {
-    static constexpr int kNumIters = 1'000'000;
+    static constexpr int kNumIters = 10'000;
 
     MCTS mcts_solver(g1, g2);
     State best_state = mcts_solver.Search(kNumIters);
