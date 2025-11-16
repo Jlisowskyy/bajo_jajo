@@ -1,16 +1,23 @@
 #ifndef ALGOS_HPP
 #define ALGOS_HPP
 
-#include <State.hpp>
-#include <graph.hpp>
+#include "State.hpp"
+#include "graph.hpp"
 
-NODISCARD Mapping HungarianLike(const Graph &g1, const Graph &g2);
-NODISCARD Mapping AccurateBruteForce(const Graph &g1, const Graph &g2);
-NODISCARD Mapping AccurateAStar(const Graph &g1, const Graph &g2);
-NODISCARD Mapping Mcts(const Graph &g1, const Graph &g2);
+#include <vector>
 
-NODISCARD inline Mapping Accurate(const Graph &g1, const Graph &g2) { return AccurateAStar(g1, g2); }
+NODISCARD std::vector<Mapping> AccurateBruteForce(const Graph &g1, const Graph &g2, int k);
+NODISCARD std::vector<Mapping> AccurateAStar(const Graph &g1, const Graph &g2, int k);
+NODISCARD std::vector<Mapping> ApproxAStar(const Graph &g1, const Graph &g2, int k);
 
-NODISCARD inline Mapping Approximate(const Graph &g1, const Graph &g2) { return AccurateAStar(g1, g2); }
+NODISCARD inline std::vector<Mapping> Accurate(const Graph &g1, const Graph &g2, const int k)
+{
+    return AccurateAStar(g1, g2, k);
+}
+
+NODISCARD inline std::vector<Mapping> Approximate(const Graph &g1, const Graph &g2, const int k)
+{
+    return ApproxAStar(g1, g2, k);
+}
 
 #endif  // ALGOS_HPP

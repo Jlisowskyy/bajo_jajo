@@ -1,6 +1,7 @@
 #include "app.hpp"
 
 #include <algos.hpp>
+#include <chrono>
 #include <iostream>
 #include <random_gen.hpp>
 #include <stdexcept>
@@ -26,6 +27,7 @@ static void Help_()
     std::cout << "Usage: app [options] [filename]\n"
               << "\nOptions:\n"
               << "  --help                 Display this help message and exit.\n"
+              << "  --k num_results        Return num_results result mappings. Defaults to 1."
               << "  --approx               Run the approximate algorithm instead of the precise algorithm.\n"
               << "  --debug                Run debug traces\n"
               << "  --run_internal_tests   Run internal tests\n"
@@ -46,7 +48,8 @@ static void PrintAppState()
     TRACE(
         "\n--- Application State ---\n", "Mode:\n", "  - Debug traces:    ", (g_AppState.debug ? "yes" : "no"), "\n",
         "  - Internal tests:    ", (g_AppState.run_internal_tests ? "yes" : "no"), "\n",
-        "  - Algorithm:       ", (g_AppState.run_approx ? "Approximate " : "Precise "), "\n\n",
+        "  - Algorithm:       ", (g_AppState.run_approx ? "Approximate " : "Precise "), "\n",
+        "  - K:    ", g_AppState.num_results, "\n",
 
         (g_AppState.generate_graph ? "Input Source:        Generate Graph" : "Input Source:        File"), "\n",
 
@@ -138,16 +141,26 @@ void Run()
     PrintAppState();
 
     if (g_AppState.run_internal_tests) {
+        TRACE("Running internal tests...");
         return;
     }
 
     if (g_AppState.generate_graph) {
+        TRACE("Generating random graph...");
         const auto graphs = GenerateExample(g_AppState.spec);
         Write(g_AppState.file, graphs);
         return;
     }
 
-    auto [g1, g2]      = Read(g_AppState.file);
-    const auto mapping = g_AppState.run_approx ? Approximate(g1, g2) : Accurate(g1, g2);
-    Write(mapping);
+    TRACE("Running base application flow...");
+    auto [g1, g2] = Read(g_AppState.file);
+    TRACE("Got g1 with size: ", g1.GetVertices(), " and g2 with size: ", g2.GetVertices());
+
+    const auto t0 = std::chrono::high_resolution_clock::now();
+    const auto mappings =
+        g_AppState.run_approx ? Approximate(g1, g2, g_AppState.num_results) : Accurate(g1, g2, g_AppState.num_results);
+    const auto t1 = std::chrono::high_resolution_clock::now();
+
+    const std::uint64_t time_spent = std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
+    Write(g1, g2, mappings, time_spent);
 }

@@ -23,8 +23,30 @@ class Graph
         }
     }
 
-    Graph(const Graph &)            = delete;
-    Graph &operator=(const Graph &) = delete;
+    Graph(const Graph &other) : vertices_(other.vertices_), num_edges_(other.num_edges_)
+    {
+        const std::size_t matrix_size = static_cast<std::size_t>(vertices_) * vertices_;
+        neighbourhood_matrix_         = new (std::align_val_t{64}) std::uint32_t[matrix_size];
+        std::copy(other.neighbourhood_matrix_, other.neighbourhood_matrix_ + matrix_size, neighbourhood_matrix_);
+    }
+
+    Graph &operator=(const Graph &other)
+    {
+        if (this == &other) {
+            return *this;
+        }
+
+        operator delete[](neighbourhood_matrix_, std::align_val_t{64});
+
+        vertices_  = other.vertices_;
+        num_edges_ = other.num_edges_;
+
+        const std::size_t matrix_size = static_cast<std::size_t>(vertices_) * vertices_;
+        neighbourhood_matrix_         = new (std::align_val_t{64}) std::uint32_t[matrix_size];
+        std::copy(other.neighbourhood_matrix_, other.neighbourhood_matrix_ + matrix_size, neighbourhood_matrix_);
+
+        return *this;
+    }
 
     Graph(Graph &&g) noexcept
     {
@@ -36,9 +58,14 @@ class Graph
 
     Graph &operator=(Graph &&g) noexcept
     {
-        vertices_  = g.vertices_;
-        num_edges_ = g.num_edges_;
+        if (this == &g) {
+            return *this;
+        }
+
         operator delete[](neighbourhood_matrix_, std::align_val_t{64});
+
+        vertices_               = g.vertices_;
+        num_edges_              = g.num_edges_;
         neighbourhood_matrix_   = g.neighbourhood_matrix_;
         g.neighbourhood_matrix_ = nullptr;
         return *this;
@@ -110,7 +137,7 @@ class Graph
     }
 
     template <class Func>
-    void IterateEdges(Func func)
+    void IterateEdges(Func func) const
     {
         for (std::uint32_t u = 0; u < static_cast<std::uint32_t>(vertices_); ++u) {
             for (std::uint32_t v = 0; v < static_cast<std::uint32_t>(vertices_); ++v) {
