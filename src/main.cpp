@@ -1,3 +1,3 @@
-extern int LibMain();
+extern int LibMain(int argc, const char *const argv[]);
 
-int main() { return LibMain(); }
+int main(int argc, const char *const argv[]) { return LibMain(argc, argv); }

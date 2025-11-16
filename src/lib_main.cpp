@@ -1,9 +1,19 @@
-#include "test_framework.hpp"
+#include <iostream>
 
-extern int LibMain()
+#include <bits/ostream.tcc>
+
+#include "app.hpp"
+
+extern int LibMain(const int argc, const char *const argv[])
 {
-    // TestApproxOnPrecise(ApproxAlgo::kMcts, PreciseAlgo::kBruteForce);
-    // TestApproxOnApprox(ApproxAlgo::kMcts, ApproxAlgo::kMcts);
-    TestPreciseOnPrecise(PreciseAlgo::kAStart, PreciseAlgo::kBruteForce);
+    try {
+        ParseArgs(argc, argv);
+        Run();
+    } catch (const std::exception &e) {
+        std::cerr << e.what() << std::endl;
+        OnFail();
+        return 1;
+    }
+
     return 0;
 }
