@@ -53,6 +53,22 @@ class Mapping
         return *this;
     }
 
+    bool operator==(const Mapping &other) const
+    {
+        if (this == &other) {
+            return true;
+        }
+        if (size_g1_ != other.size_g1_ || size_g2_ != other.size_g2_ || mapped_count_ != other.mapped_count_) {
+            return false;
+        }
+        for (std::int32_t i = 0; i < size_g1_; ++i) {
+            if (mapping_[i] != other.mapping_[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     bool set_mapping(const std::int32_t g1_index, const std::int32_t g2_index)
     {
         if (g1_index < 0 || g1_index >= size_g1_ || g2_index < 0 || g2_index >= size_g2_) {
