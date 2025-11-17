@@ -119,21 +119,21 @@ static void RunTest_(const CollT &cases, std::tuple<SigT, const char *> algo0, s
     for (const GraphSpec &spec : cases) {
         const auto [g1, g2] = GenerateExample(spec);
 
-        auto start_precise      = std::chrono::high_resolution_clock::now();
-        Mapping precise_mapping = algo0_func(g1, g2);
-        auto end_precise        = std::chrono::high_resolution_clock::now();
+        auto start_precise    = std::chrono::high_resolution_clock::now();
+        auto precise_mappings = algo0_func(g1, g2, 1);
+        auto end_precise      = std::chrono::high_resolution_clock::now();
 
         std::chrono::duration<double, std::milli> precise_time = end_precise - start_precise;
-        int precise_cost                                       = CalculateMissingEdges(g1, g2, precise_mapping);
-        bool precise_mapping_ok                                = VerifyMapping(g1, g2, precise_mapping);
+        int precise_cost        = precise_mappings.empty() ? -1 : CalculateMissingEdges(g1, g2, precise_mappings[0]);
+        bool precise_mapping_ok = precise_mappings.empty() ? false : VerifyMapping(g1, g2, precise_mappings[0]);
 
-        auto start_approx      = std::chrono::high_resolution_clock::now();
-        Mapping approx_mapping = algo1_func(g1, g2);
-        auto end_approx        = std::chrono::high_resolution_clock::now();
+        auto start_approx    = std::chrono::high_resolution_clock::now();
+        auto approx_mappings = algo1_func(g1, g2, 1);
+        auto end_approx      = std::chrono::high_resolution_clock::now();
 
         std::chrono::duration<double, std::milli> approx_time = end_approx - start_approx;
-        int approx_cost                                       = CalculateMissingEdges(g1, g2, approx_mapping);
-        bool approx_mapping_ok                                = VerifyMapping(g1, g2, approx_mapping);
+        int approx_cost        = approx_mappings.empty() ? -1 : CalculateMissingEdges(g1, g2, approx_mappings[0]);
+        bool approx_mapping_ok = approx_mappings.empty() ? false : VerifyMapping(g1, g2, approx_mappings[0]);
 
         std::cout << std::left << std::setw(6) << idx++ << std::setw(8) << spec.size_g1 << std::setw(8) << spec.size_g2
                   << std::setw(8) << std::fixed << std::setprecision(1) << spec.density_g1 << std::setw(8) << std::fixed
@@ -152,60 +152,49 @@ static void RunTest_(const CollT &cases, std::tuple<SigT, const char *> algo0, s
 // ------------------------------
 
 static constexpr std::array PreciseSpec = {
-    GraphSpec{ 3,  3, 1.5, 1.0, false},
-    GraphSpec{ 4,  4, 2.0, 0.7, false},
-    GraphSpec{ 5,  5, 0.8, 1.2, false},
-    GraphSpec{ 6,  6, 2.5, 2.5, false},
+    GraphSpec{3,  3,  0.0,  0.0,        false              },
+    GraphSpec{ 4,  4,  3.0,  0.0,        false},
+    GraphSpec{
+              4,  4,  0.0,  3.0, // --- Basic Sanity Checks ---
+ false        },
 
-    // Different number of vertices (g1 < g2), varying densities
-    GraphSpec{ 3,  5, 1.0, 1.5, false},
-    GraphSpec{ 4,  6, 1.2, 2.0, false},
-    GraphSpec{ 5,  7, 0.9, 1.8, false},
+    GraphSpec{ 5,  5,  1.0,  2.0,         true},
+    GraphSpec{ 4,  6,  1.0,  1.8,         true},
 
-    // G1 based on G2, varying densities and sizes
-    GraphSpec{ 3,  5, 0.7, 2.0,  true},
-    GraphSpec{ 4,  6, 0.8, 1.2,  true},
-    GraphSpec{ 5, 11, 0.4, 1.3,  true},
-    GraphSpec{ 5,  9, 0.9, 2.1,  true},
+    GraphSpec{ 6,  8,  0.8,  2.0,         true},
+    GraphSpec{ 7,  9,  0.4,  1.5,         true},
 
-    // Mixed cases with varied densities
-    GraphSpec{ 7,  7, 0.5, 2.0, false},
-    GraphSpec{ 8,  8, 2.0, 0.5, false},
-    GraphSpec{ 4,  4, 0.2, 2.5, false},
-    GraphSpec{ 5, 10, 0.9, 1.2,  true},
+    GraphSpec{ 8,  8,  2.5,  0.5,        false},
+    GraphSpec{ 6,  9,  1.5,  1.5,        false},
 
-    // Big graphs
-    GraphSpec{11, 13, 0.5, 1.0, false},
-    GraphSpec{12, 12, 0.6, 1.3, false},
-    GraphSpec{11, 13, 0.8, 2.0,  true},
-    GraphSpec{12, 12, 0.9, 2.1,  true},
+    GraphSpec{ 7,  8, 30.0, 35.0,        false},
+    GraphSpec{ 6,  9,  0.9, 30.0,         true},
+
+    GraphSpec{ 9,  9,  1.2,  1.5,        false},
+    GraphSpec{ 8, 10,  0.9,  1.2,         true},
+    GraphSpec{10, 10,   30, 40.0,        false},
+    GraphSpec{11, 11,   30, 40.0,        false},
+    GraphSpec{ 9, 12,   20, 10.0,        false},
 };
 
 static constexpr std::array ApproxSpec = {
-    GraphSpec{ 50,  60, 0.7, 1.5,  true},
-    GraphSpec{ 70,  80, 0.6, 1.8,  true},
-    GraphSpec{ 90, 100, 0.8, 1.2,  true},
-    GraphSpec{110, 120, 0.5, 2.0,  true},
-    GraphSpec{130, 140, 0.9, 1.0,  true},
+    GraphSpec{ 50,  70,  1.0,  1.5,  true},
+    GraphSpec{ 60,  80,  0.9,  1.8,  true},
+    GraphSpec{ 70,  90, 0.75,  1.2,  true},
 
-    GraphSpec{ 60,  70, 0.7, 1.5, false},
-    GraphSpec{ 80,  90, 0.6, 1.8, false},
-    GraphSpec{100, 110, 0.8, 1.2, false},
-    GraphSpec{120, 130, 0.5, 2.0, false},
-    GraphSpec{140, 150, 0.9, 1.0, false},
+    GraphSpec{ 80, 100,  0.5,  2.0,  true},
+    GraphSpec{ 90, 110,  0.3,  1.0,  true},
 
-    GraphSpec{ 75,  75, 0.7, 1.5,  true},
-    GraphSpec{ 95,  95, 0.6, 1.8,  true},
-    GraphSpec{115, 115, 0.8, 1.2,  true},
-    GraphSpec{135, 135, 0.5, 2.0,  true},
+    GraphSpec{100, 100,  1.5,  1.5, false},
+    GraphSpec{120, 120,  0.8,  2.5, false},
+    GraphSpec{100, 150,  1.2,  1.2, false},
 
-    GraphSpec{ 85,  85, 0.7, 1.5, false},
-    GraphSpec{105, 105, 0.6, 1.8, false},
-    GraphSpec{125, 125, 0.8, 1.2, false},
-    GraphSpec{145, 145, 0.5, 2.0, false},
+    GraphSpec{100, 120, 30.0, 25.0, false},
+    GraphSpec{ 80, 100,  0.8, 40.0,  true},
+    GraphSpec{150, 150, 30.0, 30.0, false},
 
-    GraphSpec{ 20, 150, 0.3, 2.5,  true},
-    GraphSpec{150,  20, 2.5, 0.3, false},
+    GraphSpec{ 30, 150,  0.8,  2.0,  true},
+    GraphSpec{150, 150,  0.5,  3.0, false},
 };
 
 // ------------------------------

@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "io.hpp"
+#include "test_framework.hpp"
 #include "trace.hpp"
 
 // ------------------------------
@@ -142,6 +143,7 @@ void Run()
 
     if (g_AppState.run_internal_tests) {
         TRACE("Running internal tests...");
+        TestPreciseOnPrecise(PreciseAlgo::kBruteForce, PreciseAlgo::kBruteForce);
         return;
     }
 
