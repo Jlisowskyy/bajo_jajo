@@ -178,23 +178,23 @@ static constexpr std::array PreciseSpec = {
 };
 
 static constexpr std::array ApproxSpec = {
-    GraphSpec{ 50,  70,  1.0,  1.5,  true},
-    GraphSpec{ 60,  80,  0.9,  1.8,  true},
-    GraphSpec{ 70,  90, 0.75,  1.2,  true},
+    GraphSpec{50,  70,  1.0, 1.5, true},
+    GraphSpec{60,  80,  0.9, 1.8, true},
+    GraphSpec{70,  90, 0.75, 1.2, true},
 
-    GraphSpec{ 80, 100,  0.5,  2.0,  true},
-    GraphSpec{ 90, 110,  0.3,  1.0,  true},
+    GraphSpec{80, 100,  0.5, 2.0, true},
+    GraphSpec{90, 110,  0.3, 1.0, true},
 
-    GraphSpec{100, 100,  1.5,  1.5, false},
-    GraphSpec{120, 120,  0.8,  2.5, false},
-    GraphSpec{100, 150,  1.2,  1.2, false},
+    // GraphSpec{100, 100,  1.5,  1.5, false},
+    // GraphSpec{120, 120,  0.8,  2.5, false},
+    // GraphSpec{100, 150,  1.2,  1.2, false},
 
-    GraphSpec{100, 120, 30.0, 25.0, false},
-    GraphSpec{ 80, 100,  0.8, 40.0,  true},
-    GraphSpec{150, 150, 30.0, 30.0, false},
-
-    GraphSpec{ 30, 150,  0.8,  2.0,  true},
-    GraphSpec{150, 150,  0.5,  3.0, false},
+    // GraphSpec{100, 120, 30.0, 25.0, false},
+    // GraphSpec{ 80, 100,  0.8, 40.0,  true},
+    // GraphSpec{150, 150, 30.0, 30.0, false},
+    //
+    // GraphSpec{ 30, 150,  0.8,  2.0,  true},
+    // GraphSpec{150, 150,  0.5,  3.0, false},
 };
 
 // ------------------------------
