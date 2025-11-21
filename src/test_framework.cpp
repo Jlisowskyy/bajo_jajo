@@ -108,7 +108,7 @@ static void RunTest_(const CollT &cases, std::tuple<SigT, const char *> algo0, s
     const auto &[algo0_func, algo0_name] = algo0;
     const auto &[algo1_func, algo1_name] = algo1;
 
-    std::cout << "--- Testing Correctness: " << algo1_name << " vs " << algo0_name << " ---\n";
+    std::cout << "--- Testing Correctness: " << algo0_name << " vs " << algo1_name << " ---\n";
     std::cout << std::left << std::setw(6) << "Idx" << std::setw(8) << "G1_S" << std::setw(8) << "G2_S" << std::setw(8)
               << "G1_D" << std::setw(8) << "G2_D" << std::setw(10) << "G1_on_G2" << std::setw(15) << "Algo0_Cost"
               << std::setw(15) << "Algo1_Cost" << std::setw(15) << "Algo0_Map_OK" << std::setw(15) << "Algo1_Map_OK"
