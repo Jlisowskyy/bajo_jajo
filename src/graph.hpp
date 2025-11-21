@@ -7,6 +7,7 @@
 #include <cassert>
 #include <cstdint>
 #include <new>
+#include <vector>
 
 using Vertex   = std::uint32_t;
 using Edges    = std::uint32_t;
@@ -153,15 +154,22 @@ class Graph
     template <class Func>
     void IterateNeighbours(Func func, Vertex v) const
     {
+        std::vector visited(vertices_, false);
         IterateOutEdges(
             [&](Edges, Vertex neighbour) {
                 func(neighbour);
+                visited[neighbour] = true;
             },
             v
         );
         IterateInEdges(
             [&](Edges, Vertex neighbour) {
+                if (visited[neighbour]) {
+                    return;
+                }
+
                 func(neighbour);
+                visited[neighbour] = false;
             },
             v
         );

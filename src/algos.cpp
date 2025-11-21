@@ -124,151 +124,134 @@ std::vector<Mapping> AccurateBruteForce(const Graph &g1, const Graph &g2, int k)
 // A star helpers
 // ------------------------------
 
-void get_neighbors(const Graph &g, std::uint32_t v, std::unordered_set<std::uint32_t> &neighbors)
-{
-    g.IterateOutEdges(
-        [&](std::uint32_t, std::uint32_t u1) {
-            neighbors.insert(u1);
-        },
-        v
-    );
-    g.IterateInEdges(
-        [&](std::uint32_t, std::uint32_t u1) {
-            neighbors.insert(u1);
-        },
-        v
-    );
-}
-
-static std::int32_t choose_next_vertex(const Graph &g1, const State &state)
+static Vertex PickNextVertex(const Graph &g1, const State &state)
 {
     // If no vertices are mapped yet, choose the one with the most neighbors
     if (state.mapping.get_mapped_count() == 0) {
-        std::int32_t best_v1 = -1;
-        int max_neighbors    = -1;
+        Vertex best_v1         = ~static_cast<Vertex>(0);
+        Vertices max_neighbors = 0;
 
         for (std::int32_t v1 = 0; v1 < g1.GetVertices(); ++v1) {
-            std::unordered_set<std::uint32_t> unique_neighbors;
-            get_neighbors(g1, v1, unique_neighbors);
-            int neighbor_count = static_cast<int>(unique_neighbors.size());
+            const Vertices neighbor_count = g1.GetNumOfNeighbours(v1);
             if (neighbor_count > max_neighbors) {
                 max_neighbors = neighbor_count;
                 best_v1       = v1;
             }
         }
 
+        assert(best_v1 != ~static_cast<Vertex>(0));
         return best_v1;
     }
 
-    std::int32_t best_v1     = -1;
-    int max_mapped_neighbors = -1;
-    int min_total_neighbors  = INT_MAX;
+    Vertex best_v1                = ~static_cast<Vertex>(0);
+    Vertices max_mapped_neighbors = 0;
+    Vertices min_total_neighbors  = ~static_cast<Vertices>(0);
 
-    for (std::int32_t v1 = 0; v1 < g1.GetVertices(); ++v1) {
+    for (Vertex v1 = 0; v1 < g1.GetVertices(); ++v1) {
         if (state.mapping.is_g1_mapped(v1)) {
             continue;
         }
 
-        std::unordered_set<std::uint32_t> unique_neighbors;
-        get_neighbors(g1, v1, unique_neighbors);
+        Vertices mapped_neighbours = 0;
+        Vertices total_neighbours  = 0;
 
-        // Count how many of these neighbors are already mapped
-        int mapped_neighbors = 0;
-        for (std::int32_t u1 : unique_neighbors) {
-            if (state.mapping.is_g1_mapped(u1)) {
-                mapped_neighbors++;
-            }
-        }
-        int total_neighbors = static_cast<int>(unique_neighbors.size());
+        g1.IterateNeighbours(
+            [&](const Vertex neighbour) {
+                if (state.mapping.is_g1_mapped(neighbour)) {
+                    mapped_neighbours++;
+                }
+                total_neighbours++;
+            },
+            v1
+        );
 
         // Choose vertex with most mapped neighbors
         // Break ties by choosing vertex with fewer total neighbors
-        if (mapped_neighbors > max_mapped_neighbors ||
-            (mapped_neighbors == max_mapped_neighbors && total_neighbors < min_total_neighbors)) {
+        if (mapped_neighbours > max_mapped_neighbors ||
+            (mapped_neighbours == max_mapped_neighbors && total_neighbours < min_total_neighbors)) {
             best_v1              = v1;
-            max_mapped_neighbors = mapped_neighbors;
-            min_total_neighbors  = total_neighbors;
+            max_mapped_neighbors = mapped_neighbours;
+            min_total_neighbors  = total_neighbours;
         }
     }
 
     return best_v1;
 }
 
-static int calculate_assignment_cost(
-    const Graph &g1, const Graph &g2, const Mapping &mapping, std::int32_t v1, std::int32_t v2
-)
+static int CalculateAssignmentCost(const Graph &g1, const Graph &g2, const Mapping &mapping, Vertex v1, Vertex v2)
 {
     int cost = 0;
-    std::unordered_set<std::uint32_t> unique_neighbors;
-    get_neighbors(g1, v1, unique_neighbors);
 
     // Iterate over all neighbors of v1 in G1 that are already mapped
-    for (std::int32_t u1 : unique_neighbors) {
-        if (!mapping.is_g1_mapped(u1)) {
-            continue;
-        }
-
-        const std::int32_t u2 = mapping.get_mapping_g1_to_g2(u1);
-        assert(u2 != -1);
-
-        // Cost for edges from v1 to u1
-        const std::uint32_t edges_g1_v1u1 = g1.GetEdges(v1, u1);
-        if (edges_g1_v1u1 > 0) {
-            const std::uint32_t edges_g2_v2u2 = g2.GetEdges(v2, u2);
-            if (edges_g1_v1u1 > edges_g2_v2u2) {
-                cost += edges_g1_v1u1 - edges_g2_v2u2;
+    g1.IterateNeighbours(
+        [&](const Vertex neighbour) {
+            if (!mapping.is_g1_mapped(neighbour)) {
+                return;
             }
-        }
 
-        // Cost for edges from u1 to v1
-        const std::uint32_t edges_g1_u1v1 = g1.GetEdges(u1, v1);
-        if (edges_g1_u1v1 > 0) {
-            const std::uint32_t edges_g2_u2v2 = g2.GetEdges(u2, v2);
-            if (edges_g1_u1v1 > edges_g2_u2v2) {
-                cost += edges_g1_u1v1 - edges_g2_u2v2;
+            const MappedVertex u2 = mapping.get_mapping_g1_to_g2(neighbour);
+            assert(u2 != -1);
+
+            // Cost for edges from v1 to u1
+            const Edges edges_g1_v1u1 = g1.GetEdges(v1, neighbour);
+            if (edges_g1_v1u1 > 0) {
+                const Edges edges_g2_v2u2 = g2.GetEdges(v2, u2);
+                if (edges_g1_v1u1 > edges_g2_v2u2) {
+                    cost += static_cast<int>(edges_g1_v1u1 - edges_g2_v2u2);
+                }
             }
-        }
-    }
+
+            // Cost for edges from u1 to v1
+            const Edges edges_g1_u1v1 = g1.GetEdges(neighbour, v1);
+            if (edges_g1_u1v1 > 0) {
+                const Edges edges_g2_u2v2 = g2.GetEdges(u2, v2);
+                if (edges_g1_u1v1 > edges_g2_u2v2) {
+                    cost += static_cast<int>(edges_g1_u1v1 - edges_g2_u2v2);
+                }
+            }
+        },
+        v1
+    );
 
     return cost;
 }
 
-static int calculate_heuristic(const Graph &g1, const Graph &g2, const State &state)
+static int CalculateHeuristic(const Graph &g1, const Graph &g2, const State &state)
 {
     int h = 0;
-    for (std::int32_t v1 = 0; v1 < g1.GetVertices(); ++v1) {
+    for (Vertex v1 = 0; v1 < g1.GetVertices(); ++v1) {
         if (state.mapping.is_g1_mapped(v1)) {
             continue;
         }
         int min_cost = INT_MAX;
 
         // Find the minimum cost assignment to any available vertex in G2
-        for (std::int32_t v2 : state.availableVertices) {
+        for (Vertex v2 : state.availableVertices) {
             int cost_candidate = 0;
             g1.IterateNeighbours(
-                [&](std::uint32_t u1) {
-                    if (!state.mapping.is_g1_mapped(u1)) {
+                [&](Vertex neighbour) {
+                    if (!state.mapping.is_g1_mapped(neighbour)) {
                         return;
                     }
 
-                    const std::int32_t u2 = state.mapping.get_mapping_g1_to_g2(u1);
+                    const MappedVertex u2 = state.mapping.get_mapping_g1_to_g2(neighbour);
                     assert(u2 != -1);
 
                     // Cost for edges from u1 to v1
-                    const std::uint32_t edges_g1_u1v1 = g1.GetEdges(v1, u1);
+                    const Edges edges_g1_u1v1 = g1.GetEdges(v1, neighbour);
                     if (edges_g1_u1v1 > 0) {
-                        const std::uint32_t edges_g2_u2v2 = g2.GetEdges(v2, u2);
+                        const Edges edges_g2_u2v2 = g2.GetEdges(v2, u2);
                         if (edges_g1_u1v1 > edges_g2_u2v2) {
-                            cost_candidate += edges_g1_u1v1 - edges_g2_u2v2;
+                            cost_candidate += static_cast<int>(edges_g1_u1v1 - edges_g2_u2v2);
                         }
                     }
 
                     // Cost for edges from v1 to u1
-                    const std::uint32_t edges_g1_v1u1 = g1.GetEdges(u1, v1);
+                    const Edges edges_g1_v1u1 = g1.GetEdges(neighbour, v1);
                     if (edges_g1_v1u1 > 0) {
-                        const std::uint32_t edges_g2_v2u2 = g2.GetEdges(u2, v2);
+                        const Edges edges_g2_v2u2 = g2.GetEdges(u2, v2);
                         if (edges_g1_v1u1 > edges_g2_v2u2) {
-                            cost_candidate += edges_g1_v1u1 - edges_g2_v2u2;
+                            cost_candidate += static_cast<int>(edges_g1_v1u1 - edges_g2_v2u2);
                         }
                     }
                 },
@@ -320,19 +303,19 @@ std::vector<Mapping> AccurateAStar(const Graph &g1, const Graph &g2, const int k
         }
 
         // Choose next vertex to map
-        const std::int32_t v1 = choose_next_vertex(g1, current.state);
+        const Vertex v1 = PickNextVertex(g1, current.state);
 
         // Try mapping v1 to each available vertex in G2
-        for (std::int32_t v2 : current.state.availableVertices) {
+        for (Vertex v2 : current.state.availableVertices) {
             AStarState next_state;
             next_state.state = current.state;
             next_state.state.set_mapping(v1, v2);
 
-            const int cost_increment = calculate_assignment_cost(g1, g2, current.state.mapping, v1, v2);
+            const int cost_increment = CalculateAssignmentCost(g1, g2, current.state.mapping, v1, v2);
             next_state.g             = current.g + cost_increment;
 
             // Calculate heuristic
-            const int h  = calculate_heuristic(g1, g2, next_state.state);
+            const int h  = CalculateHeuristic(g1, g2, next_state.state);
             next_state.f = next_state.g + h;
 
             pq.push(next_state);
