@@ -124,16 +124,16 @@ std::vector<Mapping> AccurateBruteForce(const Graph &g1, const Graph &g2, int k)
 // A star helpers
 // ------------------------------
 
-static Vertex PickNextVertex(const Graph &g1, const State &state)
+static Vertex PickNextVertex_(const Graph &g1, const State &state)
 {
     // If no vertices are mapped yet, choose the one with the most neighbors
     if (state.mapping.get_mapped_count() == 0) {
         Vertex best_v1         = ~static_cast<Vertex>(0);
         Vertices max_neighbors = 0;
 
-        for (std::int32_t v1 = 0; v1 < g1.GetVertices(); ++v1) {
+        for (Vertex v1 = 0; v1 < g1.GetVertices(); ++v1) {
             const Vertices neighbor_count = g1.GetNumOfNeighbours(v1);
-            if (neighbor_count > max_neighbors) {
+            if (neighbor_count >= max_neighbors) {
                 max_neighbors = neighbor_count;
                 best_v1       = v1;
             }
@@ -178,7 +178,7 @@ static Vertex PickNextVertex(const Graph &g1, const State &state)
     return best_v1;
 }
 
-static int CalculateAssignmentCost(const Graph &g1, const Graph &g2, const Mapping &mapping, Vertex v1, Vertex v2)
+static int CalculateAssignmentCost_(const Graph &g1, const Graph &g2, const Mapping &mapping, Vertex v1, Vertex v2)
 {
     int cost = 0;
 
@@ -216,7 +216,7 @@ static int CalculateAssignmentCost(const Graph &g1, const Graph &g2, const Mappi
     return cost;
 }
 
-static int CalculateHeuristic(const Graph &g1, const Graph &g2, const State &state)
+static int CalculateHeuristic_(const Graph &g1, const Graph &g2, const State &state)
 {
     int h = 0;
     for (Vertex v1 = 0; v1 < g1.GetVertices(); ++v1) {
@@ -303,7 +303,7 @@ std::vector<Mapping> AccurateAStar(const Graph &g1, const Graph &g2, const int k
         }
 
         // Choose next vertex to map
-        const Vertex v1 = PickNextVertex(g1, current.state);
+        const Vertex v1 = PickNextVertex_(g1, current.state);
 
         // Try mapping v1 to each available vertex in G2
         for (Vertex v2 : current.state.availableVertices) {
@@ -311,11 +311,11 @@ std::vector<Mapping> AccurateAStar(const Graph &g1, const Graph &g2, const int k
             next_state.state = current.state;
             next_state.state.set_mapping(v1, v2);
 
-            const int cost_increment = CalculateAssignmentCost(g1, g2, current.state.mapping, v1, v2);
+            const int cost_increment = CalculateAssignmentCost_(g1, g2, current.state.mapping, v1, v2);
             next_state.g             = current.g + cost_increment;
 
             // Calculate heuristic
-            const int h  = CalculateHeuristic(g1, g2, next_state.state);
+            const int h  = CalculateHeuristic_(g1, g2, next_state.state);
             next_state.f = next_state.g + h;
 
             pq.push(next_state);
