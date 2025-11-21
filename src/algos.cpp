@@ -36,14 +36,16 @@ static int calculate_incremental_cost(const Graph &g1, const Graph &g2, const Ma
             }
         }
 
-        if (const Edges edges_g1_vu = g1.GetEdges(g1_vertex, u); edges_g1_vu > 0) {
-            const MappedVertex mapped_v = mapping.get_mapping_g1_to_g2(g1_vertex);
-            const MappedVertex mapped_u = mapping.get_mapping_g1_to_g2(u);
-            assert(mapped_v != -1 && mapped_u != -1);
+        if (u != g1_vertex) {
+            if (const Edges edges_g1_vu = g1.GetEdges(g1_vertex, u); edges_g1_vu > 0) {
+                const MappedVertex mapped_v = mapping.get_mapping_g1_to_g2(g1_vertex);
+                const MappedVertex mapped_u = mapping.get_mapping_g1_to_g2(u);
+                assert(mapped_v != -1 && mapped_u != -1);
 
-            const Edges edges_g2 = g2.GetEdges(mapped_v, mapped_u);
-            if (edges_g1_vu > edges_g2) {
-                cost += static_cast<int>(edges_g1_vu - edges_g2);
+                const Edges edges_g2 = g2.GetEdges(mapped_v, mapped_u);
+                if (edges_g1_vu > edges_g2) {
+                    cost += static_cast<int>(edges_g1_vu - edges_g2);
+                }
             }
         }
     }
@@ -201,12 +203,13 @@ static int CalculateAssignmentCost_(const Graph &g1, const Graph &g2, const Mapp
                 }
             }
 
-            // Cost for edges from u1 to v1
-            const Edges edges_g1_u1v1 = g1.GetEdges(neighbour, v1);
-            if (edges_g1_u1v1 > 0) {
-                const Edges edges_g2_u2v2 = g2.GetEdges(u2, v2);
-                if (edges_g1_u1v1 > edges_g2_u2v2) {
-                    cost += static_cast<int>(edges_g1_u1v1 - edges_g2_u2v2);
+            if (v1 != neighbour) {
+                const Edges edges_g1_u1v1 = g1.GetEdges(neighbour, v1);
+                if (edges_g1_u1v1 > 0) {
+                    const Edges edges_g2_u2v2 = g2.GetEdges(u2, v2);
+                    if (edges_g1_u1v1 > edges_g2_u2v2) {
+                        cost += static_cast<int>(edges_g1_u1v1 - edges_g2_u2v2);
+                    }
                 }
             }
         },
@@ -259,7 +262,6 @@ static int CalculateHeuristic_(const Graph &g1, const Graph &g2, const State &st
             );
             min_cost = std::min(min_cost, cost_candidate);
         }
-        assert(min_cost != INT_MAX);
         h += min_cost;
     }
     return h;
