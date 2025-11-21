@@ -236,54 +236,49 @@ static int calculate_assignment_cost(
 static int calculate_heuristic(const Graph &g1, const Graph &g2, const State &state)
 {
     int h = 0;
-
-    for (std::int32_t u1 = 0; u1 < g1.GetVertices(); ++u1) {
-        if (state.mapping.is_g1_mapped(u1)) {
+    for (std::int32_t v1 = 0; v1 < g1.GetVertices(); ++v1) {
+        if (state.mapping.is_g1_mapped(v1)) {
             continue;
         }
-
         int min_cost = INT_MAX;
 
         // Find the minimum cost assignment to any available vertex in G2
-        for (std::int32_t u2 : state.availableVertices) {
+        for (std::int32_t v2 : state.availableVertices) {
             int cost_candidate = 0;
-
-            // Calculate cost relative to already mapped neighbors
-            for (std::int32_t v1 = 0; v1 < g1.GetVertices(); ++v1) {
-                if (!state.mapping.is_g1_mapped(v1)) {
-                    continue;
-                }
-
-                const std::int32_t v2 = state.mapping.get_mapping_g1_to_g2(v1);
-                assert(v2 != -1);
-
-                // Cost for edges from u1 to v1
-                const std::uint32_t edges_g1_u1v1 = g1.GetEdges(u1, v1);
-                if (edges_g1_u1v1 > 0) {
-                    const std::uint32_t edges_g2_u2v2 = g2.GetEdges(u2, v2);
-                    if (edges_g1_u1v1 > edges_g2_u2v2) {
-                        cost_candidate += edges_g1_u1v1 - edges_g2_u2v2;
+            g1.IterateNeighbours(
+                [&](std::uint32_t u1) {
+                    if (!state.mapping.is_g1_mapped(u1)) {
+                        return;
                     }
-                }
 
-                // Cost for edges from v1 to u1
-                const std::uint32_t edges_g1_v1u1 = g1.GetEdges(v1, u1);
-                if (edges_g1_v1u1 > 0) {
-                    const std::uint32_t edges_g2_v2u2 = g2.GetEdges(v2, u2);
-                    if (edges_g1_v1u1 > edges_g2_v2u2) {
-                        cost_candidate += edges_g1_v1u1 - edges_g2_v2u2;
+                    const std::int32_t u2 = state.mapping.get_mapping_g1_to_g2(u1);
+                    assert(u2 != -1);
+
+                    // Cost for edges from u1 to v1
+                    const std::uint32_t edges_g1_u1v1 = g1.GetEdges(v1, u1);
+                    if (edges_g1_u1v1 > 0) {
+                        const std::uint32_t edges_g2_u2v2 = g2.GetEdges(v2, u2);
+                        if (edges_g1_u1v1 > edges_g2_u2v2) {
+                            cost_candidate += edges_g1_u1v1 - edges_g2_u2v2;
+                        }
                     }
-                }
-            }
 
+                    // Cost for edges from v1 to u1
+                    const std::uint32_t edges_g1_v1u1 = g1.GetEdges(u1, v1);
+                    if (edges_g1_v1u1 > 0) {
+                        const std::uint32_t edges_g2_v2u2 = g2.GetEdges(u2, v2);
+                        if (edges_g1_v1u1 > edges_g2_v2u2) {
+                            cost_candidate += edges_g1_v1u1 - edges_g2_v2u2;
+                        }
+                    }
+                },
+                v1
+            );
             min_cost = std::min(min_cost, cost_candidate);
         }
-
-        if (min_cost != INT_MAX) {
-            h += min_cost;
-        }
+        assert(min_cost != INT_MAX);
+        h += min_cost;
     }
-
     return h;
 }
 
@@ -344,7 +339,7 @@ std::vector<Mapping> AccurateAStar(const Graph &g1, const Graph &g2, const int k
         }
     }
 
-    return {};  // No solution found
+    return {};
 }
 
 // ------------------------------
