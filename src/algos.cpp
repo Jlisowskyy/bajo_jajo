@@ -228,9 +228,119 @@ static int calculate_assignment_cost(
     return cost;
 }
 
+static int calculate_heuristic(const Graph &g1, const Graph &g2, const State &state)
+{
+    int h = 0;
+
+    for (std::int32_t u1 = 0; u1 < g1.GetVertices(); ++u1) {
+        if (state.mapping.is_g1_mapped(u1)) {
+            continue;
+        }
+
+        int min_cost = INT_MAX;
+
+        // Find the minimum cost assignment to any available vertex in G2
+        for (std::int32_t u2 : state.availableVertices) {
+            int cost_candidate = 0;
+
+            // Calculate cost relative to already mapped neighbors
+            for (std::int32_t v1 = 0; v1 < g1.GetVertices(); ++v1) {
+                if (!state.mapping.is_g1_mapped(v1)) {
+                    continue;
+                }
+
+                const std::int32_t v2 = state.mapping.get_mapping_g1_to_g2(v1);
+                assert(v2 != -1);
+
+                // Cost for edges from u1 to v1
+                const std::uint32_t edges_g1_u1v1 = g1.GetEdges(u1, v1);
+                if (edges_g1_u1v1 > 0) {
+                    const std::uint32_t edges_g2_u2v2 = g2.GetEdges(u2, v2);
+                    if (edges_g1_u1v1 > edges_g2_u2v2) {
+                        cost_candidate += edges_g1_u1v1 - edges_g2_u2v2;
+                    }
+                }
+
+                // Cost for edges from v1 to u1
+                const std::uint32_t edges_g1_v1u1 = g1.GetEdges(v1, u1);
+                if (edges_g1_v1u1 > 0) {
+                    const std::uint32_t edges_g2_v2u2 = g2.GetEdges(v2, u2);
+                    if (edges_g1_v1u1 > edges_g2_v2u2) {
+                        cost_candidate += edges_g1_v1u1 - edges_g2_v2u2;
+                    }
+                }
+            }
+
+            min_cost = std::min(min_cost, cost_candidate);
+        }
+
+        if (min_cost != INT_MAX) {
+            h += min_cost;
+        }
+    }
+
+    return h;
+}
+
 // ------------------------------
 // A star
 // ------------------------------
+
+struct AStarState {
+    State state;
+    int g;  // Real cost so far
+    int f;  // f = g + h (priority)
+
+    AStarState() : state(0, 0), g(0), f(0) {}
+
+    AStarState(std::int32_t size_g1, std::int32_t size_g2) : state(size_g1, size_g2), g(0), f(0) {}
+
+    AStarState(const State &s, int cost_g, int cost_f) : state(s), g(cost_g), f(cost_f) {}
+
+    bool operator>(const AStarState &other) const { return f > other.f; }
+};
+
+std::vector<Mapping> AccurateAStar(const Graph &g1, const Graph &g2, const int k)
+{
+    if (g1.GetVertices() > g2.GetVertices()) {
+        return {};
+    }
+    std::priority_queue<AStarState, std::vector<AStarState>, std::greater<AStarState>> pq;
+
+    // Initialize with empty mapping
+    AStarState initial = AStarState(g1.GetVertices(), g2.GetVertices());
+    pq.push(initial);
+
+    while (!pq.empty()) {
+        AStarState current = pq.top();
+        pq.pop();
+
+        if (current.state.mapping.get_mapped_count() == g1.GetVertices()) {
+            return {current.state.mapping};
+        }
+
+        // Choose next vertex to map
+        const std::int32_t v1 = choose_next_vertex(g1, current.state);
+
+        // Try mapping v1 to each available vertex in G2
+        for (std::int32_t v2 : current.state.availableVertices) {
+            AStarState next_state;
+            next_state.state = current.state;
+            next_state.state.set_mapping(v1, v2);
+
+            const int cost_increment = calculate_assignment_cost(g1, g2, current.state.mapping, v1, v2);
+            next_state.g             = current.g + cost_increment;
+
+            // Calculate heuristic
+            const int h  = calculate_heuristic(g1, g2, next_state.state);
+            next_state.f = next_state.g + h;
+
+            pq.push(next_state);
+        }
+    }
+
+    return {};  // No solution found
+}
 
 // ------------------------------
 // Approx A star
