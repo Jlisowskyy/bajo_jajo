@@ -150,6 +150,35 @@ class Graph
         }
     }
 
+    template <class Func>
+    void IterateNeighbours(Func func, Vertex v) const
+    {
+        IterateOutEdges(
+            [&](Edges, Vertex neighbour) {
+                func(neighbour);
+            },
+            v
+        );
+        IterateInEdges(
+            [&](Edges, Vertex neighbour) {
+                func(neighbour);
+            },
+            v
+        );
+    }
+
+    NODISCARD Vertices GetNumOfNeighbours(const Vertex v) const
+    {
+        Vertices num_of_neighbours = 0;
+        IterateNeighbours(
+            [&](Vertex neighbour) {
+                num_of_neighbours++;
+            },
+            v
+        );
+        return num_of_neighbours;
+    }
+
     private:
     NODISCARD FUNC_INLINE Edges &GetEdges_(const Vertex u, const Vertex v)
     {
