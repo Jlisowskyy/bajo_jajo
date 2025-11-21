@@ -119,6 +119,84 @@ std::vector<Mapping> AccurateBruteForce(const Graph &g1, const Graph &g2, int k)
 // A star helpers
 // ------------------------------
 
+static std::uint32_t choose_next_vertex(const Graph &g1, const State &state)
+{
+    // If no vertices are mapped yet, choose the one with the most neighbors
+    if (state.mapping.get_mapped_count() == 0) {
+        std::int32_t best_v1 = -1;
+        int max_neighbors    = -1;
+
+        for (std::int32_t v1 = 0; v1 < g1.GetVertices(); ++v1) {
+            std::unordered_set<std::int32_t> unique_neighbors;
+            g1.IterateOutEdges(
+                [&](std::uint32_t, std::uint32_t u1) {
+                    unique_neighbors.insert(u1);
+                },
+                v1
+            );
+            g1.IterateInEdges(
+                [&](std::uint32_t, std::uint32_t u1) {
+                    unique_neighbors.insert(u1);
+                },
+                v1
+            );
+
+            int neighbor_count = static_cast<int>(unique_neighbors.size());
+
+            if (neighbor_count > max_neighbors) {
+                max_neighbors = neighbor_count;
+                best_v1       = v1;
+            }
+        }
+
+        return best_v1;
+    }
+
+    std::int32_t best_v1     = -1;
+    int max_mapped_neighbors = -1;
+    int min_total_neighbors  = INT_MAX;
+
+    for (std::int32_t v1 = 0; v1 < g1.GetVertices(); ++v1) {
+        if (state.mapping.is_g1_mapped(v1)) {
+            continue;
+        }
+
+        std::unordered_set<std::int32_t> unique_neighbors;
+        g1.IterateOutEdges(
+            [&](std::uint32_t, std::uint32_t u1) {
+                unique_neighbors.insert(u1);
+            },
+            v1
+        );
+        g1.IterateInEdges(
+            [&](std::uint32_t, std::uint32_t u1) {
+                unique_neighbors.insert(u1);
+            },
+            v1
+        );
+
+        // Count how many of these neighbors are already mapped
+        int mapped_neighbors = 0;
+        for (std::int32_t u1 : unique_neighbors) {
+            if (state.mapping.is_g1_mapped(u1)) {
+                mapped_neighbors++;
+            }
+        }
+        int total_neighbors = static_cast<int>(unique_neighbors.size());
+
+        // Choose vertex with most mapped neighbors
+        // Break ties by choosing vertex with fewer total neighbors
+        if (mapped_neighbors > max_mapped_neighbors ||
+            (mapped_neighbors == max_mapped_neighbors && total_neighbors < min_total_neighbors)) {
+            best_v1              = v1;
+            max_mapped_neighbors = mapped_neighbors;
+            min_total_neighbors  = total_neighbors;
+        }
+    }
+
+    return best_v1;
+}
+
 // ------------------------------
 // A star
 // ------------------------------
