@@ -116,6 +116,10 @@ std::vector<Mapping> AccurateBruteForce(const Graph &g1, const Graph &g2, int k)
 }
 
 // ------------------------------
+// A star helpers
+// ------------------------------
+
+// ------------------------------
 // A star
 // ------------------------------
 
