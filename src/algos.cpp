@@ -17,28 +17,33 @@ static bool is_mapping_present(const Mapping &mapping, const std::multimap<int, 
     return false;
 }
 
-static int calculate_incremental_cost(const Graph &g1, const Graph &g2, const Mapping &mapping, std::int32_t g1_vertex)
+static int calculate_incremental_cost(const Graph &g1, const Graph &g2, const Mapping &mapping, const Vertex g1_vertex)
 {
     int cost = 0;
-    for (std::int32_t u = 0; u < g1.GetVertices(); ++u) {
-        if (!mapping.is_g1_mapped(u))
+    for (Vertex u = 0; u < g1.GetVertices(); ++u) {
+        if (!mapping.is_g1_mapped(u)) {
             continue;
-        if (const std::uint32_t edges_g1_uv = g1.GetEdges(u, g1_vertex); edges_g1_uv > 0) {
-            const std::int32_t mapped_u = mapping.get_mapping_g1_to_g2(u);
-            const std::int32_t mapped_v = mapping.get_mapping_g1_to_g2(g1_vertex);
+        }
+
+        if (const Edges edges_g1_uv = g1.GetEdges(u, g1_vertex); edges_g1_uv > 0) {
+            const MappedVertex mapped_u = mapping.get_mapping_g1_to_g2(u);
+            const MappedVertex mapped_v = mapping.get_mapping_g1_to_g2(g1_vertex);
             assert(mapped_u != -1 && mapped_v != -1);
-            const std::uint32_t edges_g2 = g2.GetEdges(mapped_u, mapped_v);
+
+            const Edges edges_g2 = g2.GetEdges(mapped_u, mapped_v);
             if (edges_g1_uv > edges_g2) {
-                cost += edges_g1_uv - edges_g2;
+                cost += static_cast<int>(edges_g1_uv - edges_g2);
             }
         }
-        if (const std::uint32_t edges_g1_vu = g1.GetEdges(g1_vertex, u); edges_g1_vu > 0) {
-            const std::int32_t mapped_v = mapping.get_mapping_g1_to_g2(g1_vertex);
-            const std::int32_t mapped_u = mapping.get_mapping_g1_to_g2(u);
+
+        if (const Edges edges_g1_vu = g1.GetEdges(g1_vertex, u); edges_g1_vu > 0) {
+            const MappedVertex mapped_v = mapping.get_mapping_g1_to_g2(g1_vertex);
+            const MappedVertex mapped_u = mapping.get_mapping_g1_to_g2(u);
             assert(mapped_v != -1 && mapped_u != -1);
-            const std::uint32_t edges_g2 = g2.GetEdges(mapped_v, mapped_u);
+
+            const Edges edges_g2 = g2.GetEdges(mapped_v, mapped_u);
             if (edges_g1_vu > edges_g2) {
-                cost += edges_g1_vu - edges_g2;
+                cost += static_cast<int>(edges_g1_vu - edges_g2);
             }
         }
     }
@@ -56,7 +61,7 @@ static void BruteForceRecursive(
         }
     }
 
-    if (depth == g1.GetVertices()) {
+    if (depth == static_cast<std::int32_t>(g1.GetVertices())) {
         if (is_mapping_present(current_mapping, best_mappings)) {
             return;
         }
@@ -72,7 +77,7 @@ static void BruteForceRecursive(
         return;
     }
 
-    for (std::int32_t candidate = 0; candidate < g2.GetVertices(); ++candidate) {
+    for (Vertex candidate = 0; candidate < g2.GetVertices(); ++candidate) {
         if (used_g2_vertices[candidate]) {
             continue;
         }
@@ -345,3 +350,5 @@ std::vector<Mapping> AccurateAStar(const Graph &g1, const Graph &g2, const int k
 // ------------------------------
 // Approx A star
 // ------------------------------
+
+NODISCARD std::vector<Mapping> ApproxAStar(const Graph &g1, const Graph &g2, int k) { return {}; }

@@ -8,12 +8,16 @@
 #include <cstdint>
 #include <new>
 
+using Vertex   = std::uint32_t;
+using Edges    = std::uint32_t;
+using Vertices = std::uint32_t;
+
 class Graph
 {
     public:
-    explicit Graph(const std::uint32_t num_vertices) : vertices_(num_vertices)
+    explicit Graph(const Vertices num_vertices) : vertices_(num_vertices)
     {
-        neighbourhood_matrix_ = new (std::align_val_t{64}) std::uint32_t[num_vertices * num_vertices]{};
+        neighbourhood_matrix_ = new (std::align_val_t{64}) Edges[num_vertices * num_vertices]{};
     }
 
     ~Graph()
@@ -26,7 +30,7 @@ class Graph
     Graph(const Graph &other) : vertices_(other.vertices_), num_edges_(other.num_edges_)
     {
         const std::size_t matrix_size = static_cast<std::size_t>(vertices_) * vertices_;
-        neighbourhood_matrix_         = new (std::align_val_t{64}) std::uint32_t[matrix_size];
+        neighbourhood_matrix_         = new (std::align_val_t{64}) Edges[matrix_size];
         std::copy(other.neighbourhood_matrix_, other.neighbourhood_matrix_ + matrix_size, neighbourhood_matrix_);
     }
 
@@ -42,7 +46,7 @@ class Graph
         num_edges_ = other.num_edges_;
 
         const std::size_t matrix_size = static_cast<std::size_t>(vertices_) * vertices_;
-        neighbourhood_matrix_         = new (std::align_val_t{64}) std::uint32_t[matrix_size];
+        neighbourhood_matrix_         = new (std::align_val_t{64}) Edges[matrix_size];
         std::copy(other.neighbourhood_matrix_, other.neighbourhood_matrix_ + matrix_size, neighbourhood_matrix_);
 
         return *this;
@@ -71,66 +75,64 @@ class Graph
         return *this;
     }
 
-    void AddEdges(const std::uint32_t u, const std::uint32_t v, const std::uint32_t num_edges = 1)
+    void AddEdges(const Vertex u, const Vertex v, const Edges edges = 1)
     {
-        GetEdges_(u, v) += num_edges;
-        num_edges_ += num_edges;
+        GetEdges_(u, v) += edges;
+        num_edges_ += edges;
     }
 
-    void RemoveEdges(const std::uint32_t u, const std::uint32_t v, const std::uint32_t num_edges = 1)
+    void RemoveEdges(const Vertex u, const Vertex v, const Edges edges = 1)
     {
-        assert(GetEdges(u, v) >= num_edges);
+        assert(GetEdges(u, v) >= edges);
 
-        GetEdges_(u, v) -= num_edges;
-        num_edges_ -= num_edges;
+        GetEdges_(u, v) -= edges;
+        num_edges_ -= edges;
+        assert(num_edges_ >= 0);
     }
 
-    NODISCARD FUNC_INLINE std::uint32_t GetEdges(const std::uint32_t u, const std::uint32_t v) const
-    {
-        return GetEdges_(u, v);
-    }
+    NODISCARD FUNC_INLINE Edges GetEdges(const Vertex u, const Vertex v) const { return GetEdges_(u, v); }
 
-    NODISCARD FUNC_INLINE std::uint32_t GetVertices() const { return static_cast<std::uint32_t>(vertices_); }
+    NODISCARD FUNC_INLINE Vertices GetVertices() const { return static_cast<Vertices>(vertices_); }
 
-    NODISCARD FUNC_INLINE std::uint32_t GetEdges() const { return static_cast<std::uint32_t>(num_edges_); }
+    NODISCARD FUNC_INLINE Edges GetEdges() const { return static_cast<Edges>(num_edges_); }
 
     template <class Func>
-    void IterateOutEdges(Func func, const std::uint32_t v) const
+    void IterateOutEdges(Func func, const Vertex v) const
     {
-        assert(v < static_cast<std::uint32_t>(vertices_));
+        assert(v < static_cast<Vertices>(vertices_));
 
-        for (std::uint32_t u = 0; u < static_cast<std::uint32_t>(vertices_); ++u) {
-            if (const std::uint32_t edges = GetEdges(v, u); edges != 0) {
+        for (Vertex u = 0; u < static_cast<Vertex>(vertices_); ++u) {
+            if (const Edges edges = GetEdges(v, u); edges != 0) {
                 func(edges, u);
             }
         }
     }
 
     template <class Func>
-    void IterateInEdges(Func func, const std::uint32_t v) const
+    void IterateInEdges(Func func, const Vertex v) const
     {
-        assert(v < static_cast<std::uint32_t>(vertices_));
+        assert(v < static_cast<Vertex>(vertices_));
 
-        for (std::uint32_t u = 0; u < static_cast<std::uint32_t>(vertices_); ++u) {
-            if (const std::uint32_t edges = GetEdges(u, v); edges != 0) {
+        for (Vertex u = 0; u < static_cast<Vertex>(vertices_); ++u) {
+            if (const Edges edges = GetEdges(u, v); edges != 0) {
                 func(edges, u);
             }
         }
     }
 
     template <class Func>
-    void IterateEdges(Func func, const std::uint32_t v) const
+    void IterateEdges(Func func, const Vertex v) const
     {
-        assert(v < static_cast<std::uint32_t>(vertices_));
+        assert(v < static_cast<Vertex>(vertices_));
 
-        for (std::uint32_t u = 0; u < static_cast<std::uint32_t>(vertices_); ++u) {
-            if (const std::uint32_t edges = GetEdges(v, u); edges != 0) {
+        for (Vertex u = 0; u < static_cast<Vertex>(vertices_); ++u) {
+            if (const Edges edges = GetEdges(v, u); edges != 0) {
                 func(edges, v, u);
             }
         }
 
-        for (std::uint32_t u = 0; u < static_cast<std::uint32_t>(vertices_); ++u) {
-            if (const std::uint32_t edges = GetEdges(u, v); edges != 0) {
+        for (Vertex u = 0; u < static_cast<Vertex>(vertices_); ++u) {
+            if (const Edges edges = GetEdges(u, v); edges != 0) {
                 func(edges, u, v);
             }
         }
@@ -139,9 +141,9 @@ class Graph
     template <class Func>
     void IterateEdges(Func func) const
     {
-        for (std::uint32_t u = 0; u < static_cast<std::uint32_t>(vertices_); ++u) {
-            for (std::uint32_t v = 0; v < static_cast<std::uint32_t>(vertices_); ++v) {
-                if (const std::uint32_t edges = GetEdges(u, v); edges != 0) {
+        for (Vertex u = 0; u < static_cast<Vertex>(vertices_); ++u) {
+            for (Vertex v = 0; v < static_cast<Vertex>(vertices_); ++v) {
+                if (const Edges edges = GetEdges(u, v); edges != 0) {
                     func(edges, u, v);
                 }
             }
@@ -149,27 +151,25 @@ class Graph
     }
 
     private:
-    NODISCARD FUNC_INLINE std::uint32_t &GetEdges_(const std::uint32_t u, const std::uint32_t v)
+    NODISCARD FUNC_INLINE Edges &GetEdges_(const Vertex u, const Vertex v)
     {
-        assert(u < static_cast<std::uint32_t>(vertices_));
-        assert(v < static_cast<std::uint32_t>(vertices_));
+        assert(u < static_cast<Vertex>(vertices_));
+        assert(v < static_cast<Vertex>(vertices_));
 
         return neighbourhood_matrix_[u * vertices_ + v];
     }
 
-    NODISCARD FUNC_INLINE const std::uint32_t &GetEdges_(const std::uint32_t u, const std::uint32_t v) const
+    NODISCARD FUNC_INLINE const Edges &GetEdges_(const Vertex u, const Vertex v) const
     {
-        assert(u < static_cast<std::uint32_t>(vertices_));
-        assert(v < static_cast<std::uint32_t>(vertices_));
+        assert(u < static_cast<Vertex>(vertices_));
+        assert(v < static_cast<Vertex>(vertices_));
 
         return neighbourhood_matrix_[u * vertices_ + v];
     }
 
     std::int32_t vertices_{};
     std::int32_t num_edges_{};
-    alignas(64) std::uint32_t *neighbourhood_matrix_{};
+    alignas(64) Edges *neighbourhood_matrix_{};
 };
-
-Graph ParseGraph(const char *file);
 
 #endif  // GRAPH_HPP

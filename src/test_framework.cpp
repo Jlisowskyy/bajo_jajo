@@ -12,23 +12,24 @@
 static int CalculateMissingEdges(const Graph &g1, const Graph &g2, const Mapping &mapping)
 {
     int missing_edges = 0;
-    std::int32_t n1   = g1.GetVertices();
+    const Vertices n1 = g1.GetVertices();
 
-    for (std::int32_t u = 0; u < n1; ++u) {
-        std::int32_t mapped_u = mapping.get_mapping_g1_to_g2(u);
-        if (mapped_u == -1)
+    for (Vertex u = 0; u < n1; ++u) {
+        const MappedVertex mapped_u = mapping.get_mapping_g1_to_g2(u);
+        if (mapped_u == -1) {
             continue;
+        }
 
-        for (std::int32_t v = 0; v < n1; ++v) {
-            const std::int32_t mapped_v = mapping.get_mapping_g1_to_g2(v);
-            if (mapped_v == -1)
+        for (Vertex v = 0; v < n1; ++v) {
+            const MappedVertex mapped_v = mapping.get_mapping_g1_to_g2(v);
+            if (mapped_v == -1) {
                 continue;
+            }
 
-            const std::uint32_t edges_in_g1 = g1.GetEdges(u, v);
-            std::uint32_t edges_in_g2       = g2.GetEdges(mapped_u, mapped_v);
-
+            const Edges edges_in_g1 = g1.GetEdges(u, v);
+            const Edges edges_in_g2 = g2.GetEdges(mapped_u, mapped_v);
             if (edges_in_g1 > edges_in_g2) {
-                missing_edges += (edges_in_g1 - edges_in_g2);
+                missing_edges += static_cast<int>(edges_in_g1 - edges_in_g2);
             }
         }
     }
@@ -37,18 +38,18 @@ static int CalculateMissingEdges(const Graph &g1, const Graph &g2, const Mapping
 
 static bool VerifyMapping(const Graph &g1, const Graph &g2, const Mapping &mapping)
 {
-    std::int32_t n1 = g1.GetVertices();
-    std::int32_t n2 = g2.GetVertices();
+    const Vertices n1 = g1.GetVertices();
+    const Vertices n2 = g2.GetVertices();
 
     // 1. Check if mapping is consistent (g1_to_g2 and g2_to_g1 are inverses)
-    for (std::int32_t i = 0; i < n1; ++i) {
-        std::int32_t mapped_g2_idx = mapping.get_mapping_g1_to_g2(i);
+    for (Vertex i = 0; i < n1; ++i) {
+        const MappedVertex mapped_g2_idx = mapping.get_mapping_g1_to_g2(i);
         if (mapped_g2_idx != -1) {
-            if (mapped_g2_idx < 0 || mapped_g2_idx >= n2) {
+            if (mapped_g2_idx < 0 || mapped_g2_idx >= static_cast<MappedVertex>(n2)) {
                 std::cerr << "Error: Mapped G2 index out of bounds for G1 vertex " << i << std::endl;
                 return false;
             }
-            if (mapping.get_mapping_g2_to_g1(mapped_g2_idx) != i) {
+            if (mapping.get_mapping_g2_to_g1(mapped_g2_idx) != static_cast<MappedVertex>(i)) {
                 std::cerr << "Error: Inconsistent mapping for G1 vertex " << i << ". G1->" << mapped_g2_idx
                           << " but G2->" << mapping.get_mapping_g2_to_g1(mapped_g2_idx) << std::endl;
                 return false;
@@ -56,14 +57,14 @@ static bool VerifyMapping(const Graph &g1, const Graph &g2, const Mapping &mappi
         }
     }
 
-    for (std::int32_t i = 0; i < n2; ++i) {
-        std::int32_t mapped_g1_idx = mapping.get_mapping_g2_to_g1(i);
+    for (Vertex i = 0; i < n2; ++i) {
+        const MappedVertex mapped_g1_idx = mapping.get_mapping_g2_to_g1(i);
         if (mapped_g1_idx != -1) {
-            if (mapped_g1_idx < 0 || mapped_g1_idx >= n1) {
+            if (mapped_g1_idx < 0 || mapped_g1_idx >= static_cast<MappedVertex>(n1)) {
                 std::cerr << "Error: Mapped G1 index out of bounds for G2 vertex " << i << std::endl;
                 return false;
             }
-            if (mapping.get_mapping_g1_to_g2(mapped_g1_idx) != i) {
+            if (mapping.get_mapping_g1_to_g2(mapped_g1_idx) != static_cast<MappedVertex>(i)) {
                 std::cerr << "Error: Inconsistent reverse mapping for G2 vertex " << i << ". G2->" << mapped_g1_idx
                           << " but G1->" << mapping.get_mapping_g1_to_g2(mapped_g1_idx) << std::endl;
                 return false;
@@ -72,8 +73,8 @@ static bool VerifyMapping(const Graph &g1, const Graph &g2, const Mapping &mappi
     }
 
     // 2. Check mapped_count_ consistency
-    int actual_mapped_count = 0;
-    for (std::int32_t i = 0; i < n1; ++i) {
+    Vertices actual_mapped_count = 0;
+    for (Vertex i = 0; i < n1; ++i) {
         if (mapping.is_g1_mapped(i)) {
             actual_mapped_count++;
         }

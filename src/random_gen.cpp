@@ -19,8 +19,8 @@ std::tuple<Graph, Graph> GenerateExample(const GraphSpec spec)
     const auto edges_g2 = static_cast<std::uint32_t>(spec.density_g2 * spec.size_g2);
     std::uniform_int_distribution<std::uint32_t> dist_g2(0, spec.size_g2 - 1);
     for (std::uint32_t i = 0; i < edges_g2; ++i) {
-        const std::uint32_t v1 = dist_g2(g_Gen);
-        const std::uint32_t v2 = dist_g2(g_Gen);
+        const auto v1 = static_cast<Vertex>(dist_g2(g_Gen));
+        const auto v2 = static_cast<Vertex>(dist_g2(g_Gen));
 
         g2.AddEdges(v1, v2);
     }
@@ -30,8 +30,8 @@ std::tuple<Graph, Graph> GenerateExample(const GraphSpec spec)
         std::uniform_int_distribution<std::uint32_t> dist_g1(0, spec.size_g1 - 1);
 
         for (std::uint32_t i = 0; i < edges_g1; ++i) {
-            const std::uint32_t v1 = dist_g1(g_Gen);
-            const std::uint32_t v2 = dist_g1(g_Gen);
+            const auto v1 = static_cast<Vertex>(dist_g1(g_Gen));
+            const auto v2 = static_cast<Vertex>(dist_g1(g_Gen));
 
             g1.AddEdges(v1, v2);
         }
@@ -42,26 +42,26 @@ std::tuple<Graph, Graph> GenerateExample(const GraphSpec spec)
         std::unordered_set<std::uint32_t> selected_vertices_g2{};
 
         while (selected_vertices_g2.size() != spec.size_g1) {
-            const std::uint32_t v = dist_g2(g_Gen);
+            const auto v = static_cast<Vertex>(dist_g2(g_Gen));
             selected_vertices_g2.insert(v);
         }
 
         // Create mapping from G2 vertices to G1 vertices
         std::unordered_map<std::uint32_t, std::uint32_t> g2_to_g1_mapping;
-        std::uint32_t g1_vertex_idx = 0;
-        for (const std::uint32_t g2_vertex : selected_vertices_g2) {
+        Vertex g1_vertex_idx = 0;
+        for (const Vertex g2_vertex : selected_vertices_g2) {
             g2_to_g1_mapping[g2_vertex] = g1_vertex_idx++;
         }
 
         // Add edges from G2 subgraph to G1
-        for (const std::uint32_t v_g2 : selected_vertices_g2) {
-            const std::uint32_t v_g1 = g2_to_g1_mapping[v_g2];
+        for (const Vertex v_g2 : selected_vertices_g2) {
+            const Vertex v_g1 = g2_to_g1_mapping[v_g2];
 
             g2.IterateOutEdges(
-                [&](const std::uint32_t edges, const std::uint32_t u_g2) {
+                [&](const Edges edges, const Vertex u_g2) {
                     // Only add edge if the target vertex is also in our selected set
-                    if (selected_vertices_g2.find(u_g2) != selected_vertices_g2.end()) {
-                        const std::uint32_t u_g1 = g2_to_g1_mapping[u_g2];
+                    if (selected_vertices_g2.contains(u_g2)) {
+                        const Vertex u_g1 = g2_to_g1_mapping[u_g2];
                         g1.AddEdges(v_g1, u_g1, edges);
                     }
                 },
@@ -72,7 +72,7 @@ std::tuple<Graph, Graph> GenerateExample(const GraphSpec spec)
         // Remove edges based on density_g1 (acts as a keep probability)
         std::uniform_real_distribution dist(0.0, 1.0);
         const double removal_prob = 1.0 - spec.density_g1;
-        g1.IterateEdges([&](const std::uint32_t edges, const std::uint32_t u, const std::uint32_t v) {
+        g1.IterateEdges([&](const Edges edges, const Vertex u, const Vertex v) {
             for (std::uint32_t i = 0; i < edges; ++i) {
                 if (dist(g_Gen) < removal_prob) {
                     g1.RemoveEdges(u, v);

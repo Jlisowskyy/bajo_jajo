@@ -16,14 +16,14 @@ static int CalculateMissingEdges(const Graph &g1, const Graph &g2, const Mapping
 {
     int missing_edges = 0;
 
-    g1.IterateEdges([&](const std::uint32_t edges_in_g1, const std::uint32_t u, const std::uint32_t v) {
-        const std::int32_t mapped_u = mapping.get_mapping_g1_to_g2(u);
-        const std::int32_t mapped_v = mapping.get_mapping_g1_to_g2(v);
+    g1.IterateEdges([&](const Edges edges_in_g1, const Vertex u, const Vertex v) {
+        const MappedVertex mapped_u = mapping.get_mapping_g1_to_g2(u);
+        const MappedVertex mapped_v = mapping.get_mapping_g1_to_g2(v);
 
         if (mapped_u != -1 && mapped_v != -1) {
-            const std::uint32_t edges_in_g2 = g2.GetEdges(mapped_u, mapped_v);
+            const Edges edges_in_g2 = g2.GetEdges(mapped_u, mapped_v);
             if (edges_in_g1 > edges_in_g2) {
-                missing_edges += (edges_in_g1 - edges_in_g2);
+                missing_edges += static_cast<int>(edges_in_g1 - edges_in_g2);
             }
         }
     });
@@ -43,16 +43,16 @@ std::pair<Graph, Graph> Read(const char *file)
     }
 
     auto read_single_graph = [](std::ifstream &fs) {
-        std::uint32_t size;
+        Vertices size{};
         fs >> size;
         if (fs.fail() || size == 0) {
             throw std::runtime_error("Error reading or invalid graph size.");
         }
 
         Graph g(size);
-        for (std::uint32_t i = 0; i < size; ++i) {
-            for (std::uint32_t j = 0; j < size; ++j) {
-                std::uint32_t edges;
+        for (Vertex i = 0; i < size; ++i) {
+            for (Vertex j = 0; j < size; ++j) {
+                Edges edges{};
                 fs >> edges;
                 if (fs.fail()) {
                     throw std::runtime_error("Error reading adjacency matrix.");
@@ -90,7 +90,7 @@ void Write(const Graph &g1, const Graph &g2, const std::vector<Mapping> &mapping
         std::cout << "  - Cost (Missing Edges): " << cost << "\n";
         std::cout << "  - Mapping (G1 -> G2):\n";
 
-        for (std::uint32_t i = 0; i < g1.GetVertices(); ++i) {
+        for (Vertex i = 0; i < g1.GetVertices(); ++i) {
             std::cout << "    " << i << " -> " << mapping.get_mapping_g1_to_g2(i) << "\n";
         }
     }
@@ -108,8 +108,8 @@ void Write(const char *file, const std::tuple<Graph, Graph> &graphs)
 
     const auto size1 = g1.GetVertices();
     file_stream << size1 << "\n";
-    for (std::uint32_t i = 0; i < size1; ++i) {
-        for (std::uint32_t j = 0; j < size1; ++j) {
+    for (Vertex i = 0; i < size1; ++i) {
+        for (Vertex j = 0; j < size1; ++j) {
             file_stream << g1.GetEdges(i, j) << (j == size1 - 1 ? "" : " ");
         }
         file_stream << "\n";
@@ -117,8 +117,8 @@ void Write(const char *file, const std::tuple<Graph, Graph> &graphs)
 
     const auto size2 = g2.GetVertices();
     file_stream << size2 << "\n";
-    for (std::uint32_t i = 0; i < size2; ++i) {
-        for (std::uint32_t j = 0; j < size2; ++j) {
+    for (Vertex i = 0; i < size2; ++i) {
+        for (Vertex j = 0; j < size2; ++j) {
             file_stream << g2.GetEdges(i, j) << (j == size2 - 1 ? "" : " ");
         }
         file_stream << "\n";
