@@ -180,6 +180,29 @@ static Vertex PickNextVertex_(const Graph &g1, const State &state)
     return best_v1;
 }
 
+static int CalculateSingleDirectionEdgesAdditions_(
+    const Graph &g1, Vertex v1, Vertex u1, const Graph &g2, Vertex v2, Vertex u2
+)
+{
+    int cost                  = 0;
+    const Edges edges_g1_v1u1 = g1.GetEdges(v1, u1);
+    if (edges_g1_v1u1 > 0) {
+        const Edges edges_g2_v2u2 = g2.GetEdges(v2, u2);
+        if (edges_g1_v1u1 > edges_g2_v2u2) {
+            cost += static_cast<int>(edges_g1_v1u1 - edges_g2_v2u2);
+        }
+    }
+    return cost;
+}
+
+static int CalculateEdgesAdditions_(const Graph &g1, Vertex v1, Vertex u1, const Graph &g2, Vertex v2, Vertex u2)
+{
+    int cost = 0;
+    cost += CalculateSingleDirectionEdgesAdditions_(g1, v1, u1, g2, v2, u2);
+    cost += CalculateSingleDirectionEdgesAdditions_(g1, u1, v1, g2, u2, v2);
+    return cost;
+}
+
 static int CalculateAssignmentCost_(const Graph &g1, const Graph &g2, const Mapping &mapping, Vertex v1, Vertex v2)
 {
     int cost = 0;
@@ -194,24 +217,7 @@ static int CalculateAssignmentCost_(const Graph &g1, const Graph &g2, const Mapp
             const MappedVertex u2 = mapping.get_mapping_g1_to_g2(neighbour);
             assert(u2 != -1);
 
-            // Cost for edges from v1 to u1
-            const Edges edges_g1_v1u1 = g1.GetEdges(v1, neighbour);
-            if (edges_g1_v1u1 > 0) {
-                const Edges edges_g2_v2u2 = g2.GetEdges(v2, u2);
-                if (edges_g1_v1u1 > edges_g2_v2u2) {
-                    cost += static_cast<int>(edges_g1_v1u1 - edges_g2_v2u2);
-                }
-            }
-
-            if (v1 != neighbour) {
-                const Edges edges_g1_u1v1 = g1.GetEdges(neighbour, v1);
-                if (edges_g1_u1v1 > 0) {
-                    const Edges edges_g2_u2v2 = g2.GetEdges(u2, v2);
-                    if (edges_g1_u1v1 > edges_g2_u2v2) {
-                        cost += static_cast<int>(edges_g1_u1v1 - edges_g2_u2v2);
-                    }
-                }
-            }
+            cost += CalculateEdgesAdditions_(g1, v1, neighbour, g2, v2, u2);
         },
         v1
     );
@@ -240,23 +246,7 @@ static int CalculateHeuristic_(const Graph &g1, const Graph &g2, const State &st
                     const MappedVertex u2 = state.mapping.get_mapping_g1_to_g2(neighbour);
                     assert(u2 != -1);
 
-                    // Cost for edges from u1 to v1
-                    const Edges edges_g1_u1v1 = g1.GetEdges(v1, neighbour);
-                    if (edges_g1_u1v1 > 0) {
-                        const Edges edges_g2_u2v2 = g2.GetEdges(v2, u2);
-                        if (edges_g1_u1v1 > edges_g2_u2v2) {
-                            cost_candidate += static_cast<int>(edges_g1_u1v1 - edges_g2_u2v2);
-                        }
-                    }
-
-                    // Cost for edges from v1 to u1
-                    const Edges edges_g1_v1u1 = g1.GetEdges(neighbour, v1);
-                    if (edges_g1_v1u1 > 0) {
-                        const Edges edges_g2_v2u2 = g2.GetEdges(u2, v2);
-                        if (edges_g1_v1u1 > edges_g2_v2u2) {
-                            cost_candidate += static_cast<int>(edges_g1_v1u1 - edges_g2_v2u2);
-                        }
-                    }
+                    cost_candidate += CalculateEdgesAdditions_(g1, v1, neighbour, g2, v2, u2);
                 },
                 v1
             );
