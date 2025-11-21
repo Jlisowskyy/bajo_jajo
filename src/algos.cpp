@@ -119,7 +119,23 @@ std::vector<Mapping> AccurateBruteForce(const Graph &g1, const Graph &g2, int k)
 // A star helpers
 // ------------------------------
 
-static std::uint32_t choose_next_vertex(const Graph &g1, const State &state)
+void get_neighbors(const Graph &g, std::uint32_t v, std::unordered_set<std::uint32_t> &neighbors)
+{
+    g.IterateOutEdges(
+        [&](std::uint32_t, std::uint32_t u1) {
+            neighbors.insert(u1);
+        },
+        v
+    );
+    g.IterateInEdges(
+        [&](std::uint32_t, std::uint32_t u1) {
+            neighbors.insert(u1);
+        },
+        v
+    );
+}
+
+static std::int32_t choose_next_vertex(const Graph &g1, const State &state)
 {
     // If no vertices are mapped yet, choose the one with the most neighbors
     if (state.mapping.get_mapped_count() == 0) {
@@ -127,22 +143,9 @@ static std::uint32_t choose_next_vertex(const Graph &g1, const State &state)
         int max_neighbors    = -1;
 
         for (std::int32_t v1 = 0; v1 < g1.GetVertices(); ++v1) {
-            std::unordered_set<std::int32_t> unique_neighbors;
-            g1.IterateOutEdges(
-                [&](std::uint32_t, std::uint32_t u1) {
-                    unique_neighbors.insert(u1);
-                },
-                v1
-            );
-            g1.IterateInEdges(
-                [&](std::uint32_t, std::uint32_t u1) {
-                    unique_neighbors.insert(u1);
-                },
-                v1
-            );
-
+            std::unordered_set<std::uint32_t> unique_neighbors;
+            get_neighbors(g1, v1, unique_neighbors);
             int neighbor_count = static_cast<int>(unique_neighbors.size());
-
             if (neighbor_count > max_neighbors) {
                 max_neighbors = neighbor_count;
                 best_v1       = v1;
@@ -161,19 +164,8 @@ static std::uint32_t choose_next_vertex(const Graph &g1, const State &state)
             continue;
         }
 
-        std::unordered_set<std::int32_t> unique_neighbors;
-        g1.IterateOutEdges(
-            [&](std::uint32_t, std::uint32_t u1) {
-                unique_neighbors.insert(u1);
-            },
-            v1
-        );
-        g1.IterateInEdges(
-            [&](std::uint32_t, std::uint32_t u1) {
-                unique_neighbors.insert(u1);
-            },
-            v1
-        );
+        std::unordered_set<std::uint32_t> unique_neighbors;
+        get_neighbors(g1, v1, unique_neighbors);
 
         // Count how many of these neighbors are already mapped
         int mapped_neighbors = 0;
@@ -195,6 +187,45 @@ static std::uint32_t choose_next_vertex(const Graph &g1, const State &state)
     }
 
     return best_v1;
+}
+
+static int calculate_assignment_cost(
+    const Graph &g1, const Graph &g2, const Mapping &mapping, std::int32_t v1, std::int32_t v2
+)
+{
+    int cost = 0;
+    std::unordered_set<std::uint32_t> unique_neighbors;
+    get_neighbors(g1, v1, unique_neighbors);
+
+    // Iterate over all neighbors of v1 in G1 that are already mapped
+    for (std::int32_t u1 : unique_neighbors) {
+        if (!mapping.is_g1_mapped(u1)) {
+            continue;
+        }
+
+        const std::int32_t u2 = mapping.get_mapping_g1_to_g2(u1);
+        assert(u2 != -1);
+
+        // Cost for edges from v1 to u1
+        const std::uint32_t edges_g1_v1u1 = g1.GetEdges(v1, u1);
+        if (edges_g1_v1u1 > 0) {
+            const std::uint32_t edges_g2_v2u2 = g2.GetEdges(v2, u2);
+            if (edges_g1_v1u1 > edges_g2_v2u2) {
+                cost += edges_g1_v1u1 - edges_g2_v2u2;
+            }
+        }
+
+        // Cost for edges from u1 to v1
+        const std::uint32_t edges_g1_u1v1 = g1.GetEdges(u1, v1);
+        if (edges_g1_u1v1 > 0) {
+            const std::uint32_t edges_g2_u2v2 = g2.GetEdges(u2, v2);
+            if (edges_g1_u1v1 > edges_g2_u2v2) {
+                cost += edges_g1_u1v1 - edges_g2_u2v2;
+            }
+        }
+    }
+
+    return cost;
 }
 
 // ------------------------------
