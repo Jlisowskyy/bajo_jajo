@@ -24,13 +24,6 @@ add_library(${LIB_NAME} STATIC
 
 target_link_libraries(${LIB_NAME} PUBLIC libCli11)
 
-# Link filesystem library if needed (for older compilers)
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "9.0")
-    target_link_libraries(${LIB_NAME} PUBLIC stdc++fs)
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "9.0")
-    target_link_libraries(${LIB_NAME} PUBLIC c++fs)
-endif()
-
 # ------------------------------
 # Add includes
 # ------------------------------

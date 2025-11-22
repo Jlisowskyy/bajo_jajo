@@ -3,7 +3,6 @@
 #include <CLI/CLI.hpp>
 #include <algos.hpp>
 #include <chrono>
-#include <filesystem>
 #include <iostream>
 #include <random_gen.hpp>
 #include <stdexcept>
@@ -37,9 +36,7 @@ static void PrintAppState()
         (g_AppState.generate_graph ? "Input Source:        Generate Graph" : "Input Source:        File"), "\n",
 
         (g_AppState.generate_graph ? "  - G1 Size:         " : "  - Filename:        "),
-        (g_AppState.generate_graph ? std::to_string(spec.size_g1)
-                                   : (g_AppState.file.empty() ? "N/A" : g_AppState.file.string())),
-        "\n",
+        (g_AppState.generate_graph ? std::to_string(spec.size_g1) : (g_AppState.file ? g_AppState.file : "N/A")), "\n",
 
         (g_AppState.generate_graph ? "  - G2 Size:         " : ""),
         (g_AppState.generate_graph ? std::to_string(spec.size_g2) : ""), (g_AppState.generate_graph ? "\n" : ""),
@@ -79,7 +76,7 @@ void ParseArgs(int argc, const char *const argv[])
     app.add_option("--k", g_AppState.num_results, "Return num_results result mappings")->default_val(1);
 
     // Filename as optional positional argument
-    std::filesystem::path filename;
+    std::string filename;
     app.add_option("filename", filename, "Path to the input file describing the graphs or output")->expected(0, 1);
 
     // --gen option with 5 expected arguments (allow 5+ to handle filename after)
@@ -113,7 +110,7 @@ void ParseArgs(int argc, const char *const argv[])
         }
 
         // Extract filename from 6th argument if present and not already set
-        std::filesystem::path gen_filename;
+        std::string gen_filename;
         if (gen_args.size() > 5 && filename.empty()) {
             gen_filename = gen_args[5];
             gen_args.resize(5);  // Keep only the 5 gen arguments
@@ -145,11 +142,17 @@ void ParseArgs(int argc, const char *const argv[])
 
     // Copy filename to AppState if provided
     if (!filename.empty()) {
-        g_AppState.file = filename;
+        // Store the filename string in a way that persists
+        // Since AppState.file is const char*, we need to handle this carefully
+        // We'll use a static string to store it, or better yet, change AppState
+        // For now, let's use a static variable to store the string
+        static std::string filename_storage;
+        filename_storage = filename;
+        g_AppState.file  = filename_storage.c_str();
     }
 
     // Validation: require filename unless --run_internal_tests is set
-    if (!g_AppState.run_internal_tests && g_AppState.file.empty()) {
+    if (!g_AppState.run_internal_tests && g_AppState.file == nullptr) {
         throw std::runtime_error("A filename is required if --run_internal_tests is not used.");
     }
 }

@@ -1,4 +1,3 @@
-#include <filesystem>
 #include <stdexcept>
 #include "app.hpp"
 #include "gtest/gtest.h"
@@ -20,7 +19,7 @@ TEST_F(AppTest, ParseArgs_ValidFilename)
 {
     const char *const argv[] = {"app", "test.txt"};
     ASSERT_NO_THROW(ParseArgs(2, argv));
-    EXPECT_EQ(g_AppState.file, std::filesystem::path("test.txt"));
+    EXPECT_STREQ(g_AppState.file, "test.txt");
     EXPECT_FALSE(g_AppState.run_approx);
     EXPECT_FALSE(g_AppState.debug);
     EXPECT_FALSE(g_AppState.generate_graph);
@@ -31,7 +30,7 @@ TEST_F(AppTest, ParseArgs_ApproxFlag)
 {
     const char *const argv[] = {"app", "--approx", "test.txt"};
     ASSERT_NO_THROW(ParseArgs(3, argv));
-    EXPECT_EQ(g_AppState.file, std::filesystem::path("test.txt"));
+    EXPECT_STREQ(g_AppState.file, "test.txt");
     EXPECT_TRUE(g_AppState.run_approx);
 }
 
@@ -39,7 +38,7 @@ TEST_F(AppTest, ParseArgs_DebugFlag)
 {
     const char *const argv[] = {"app", "--debug", "test.txt"};
     ASSERT_NO_THROW(ParseArgs(3, argv));
-    EXPECT_EQ(g_AppState.file, std::filesystem::path("test.txt"));
+    EXPECT_STREQ(g_AppState.file, "test.txt");
     EXPECT_TRUE(g_AppState.debug);
 }
 
@@ -48,14 +47,14 @@ TEST_F(AppTest, ParseArgs_InternalTestsFlag)
     const char *const argv[] = {"app", "--run_internal_tests"};
     ASSERT_NO_THROW(ParseArgs(2, argv));
     EXPECT_TRUE(g_AppState.run_internal_tests);
-    EXPECT_TRUE(g_AppState.file.empty());  // No file is needed
+    EXPECT_EQ(g_AppState.file, nullptr);  // No file is needed
 }
 
 TEST_F(AppTest, ParseArgs_CombinedFlags)
 {
     const char *const argv[] = {"app", "--debug", "--approx", "test.txt"};
     ASSERT_NO_THROW(ParseArgs(4, argv));
-    EXPECT_EQ(g_AppState.file, std::filesystem::path("test.txt"));
+    EXPECT_STREQ(g_AppState.file, "test.txt");
     EXPECT_TRUE(g_AppState.debug);
     EXPECT_TRUE(g_AppState.run_approx);
 }
@@ -64,7 +63,7 @@ TEST_F(AppTest, ParseArgs_KOption)
 {
     const char *const argv[] = {"app", "--k", "5", "test.txt"};
     ASSERT_NO_THROW(ParseArgs(4, argv));
-    EXPECT_EQ(g_AppState.file, std::filesystem::path("test.txt"));
+    EXPECT_STREQ(g_AppState.file, "test.txt");
     EXPECT_EQ(g_AppState.num_results, 5);
 }
 
@@ -72,7 +71,7 @@ TEST_F(AppTest, ParseArgs_KOption_DefaultValue)
 {
     const char *const argv[] = {"app", "test.txt"};
     ASSERT_NO_THROW(ParseArgs(2, argv));
-    EXPECT_EQ(g_AppState.file, std::filesystem::path("test.txt"));
+    EXPECT_STREQ(g_AppState.file, "test.txt");
     EXPECT_EQ(g_AppState.num_results, 1);  // Default value
 }
 
@@ -82,7 +81,7 @@ TEST_F(AppTest, ParseArgs_GenFlag_ValidTrue)
     ASSERT_NO_THROW(ParseArgs(8, argv));
 
     EXPECT_TRUE(g_AppState.generate_graph);
-    EXPECT_EQ(g_AppState.file, std::filesystem::path("output.txt"));
+    EXPECT_STREQ(g_AppState.file, "output.txt");
     EXPECT_EQ(g_AppState.spec.size_g1, 10);
     EXPECT_EQ(g_AppState.spec.size_g2, 20);
     EXPECT_DOUBLE_EQ(g_AppState.spec.density_g1, 0.5);
@@ -96,7 +95,7 @@ TEST_F(AppTest, ParseArgs_GenFlag_ValidFalse)
     ASSERT_NO_THROW(ParseArgs(8, argv));
 
     EXPECT_TRUE(g_AppState.generate_graph);
-    EXPECT_EQ(g_AppState.file, std::filesystem::path("output.txt"));
+    EXPECT_STREQ(g_AppState.file, "output.txt");
     EXPECT_EQ(g_AppState.spec.size_g1, 15);
     EXPECT_EQ(g_AppState.spec.size_g2, 25);
     EXPECT_DOUBLE_EQ(g_AppState.spec.density_g1, 0.6);

@@ -1,8 +1,6 @@
 #ifndef APP_HPP
 #define APP_HPP
 
-#include <filesystem>
-
 #include "random_gen.hpp"
 
 void ParseArgs(int argc, const char *const argv[]);
@@ -11,7 +9,7 @@ void OnFail();
 bool IsDebug();
 
 struct AppState {
-    std::filesystem::path file{};
+    const char *file{};
     bool run_approx{};
     bool debug{};
     bool generate_graph{};
