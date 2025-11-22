@@ -4,8 +4,6 @@
 #include <chrono>
 #include <iomanip>
 #include <iostream>
-#include <sstream>
-#include <tabulate/table.hpp>
 
 // ------------------------------
 // Helpers
@@ -112,83 +110,42 @@ static void RunTest_(const CollT &cases, std::tuple<SigT, const char *> algo0, s
     const auto &[algo1_func, algo1_name] = algo1;
 
     std::cout << "--- Testing Correctness: " << algo0_name << " vs " << algo1_name << " ---\n";
-    std::cout << "Running " << cases.size() << " test cases...\n";
-
-    tabulate::Table table;
-    table.add_row(
-        {"Idx", "G1 Size", "G2 Size", "G1 Dens", "G2 Dens", "Base", "Algo0 Cost", "Algo1 Cost", "Algo0 Status",
-         "Algo1 Status", "Time0 (ms)", "Time1 (ms)"}
-    );
+    std::cout << std::left << std::setw(6) << "Idx" << std::setw(8) << "G1_S" << std::setw(8) << "G2_S" << std::setw(8)
+              << "G1_D" << std::setw(8) << "G2_D" << std::setw(10) << "G1_on_G2" << std::setw(15) << "Algo0_Cost"
+              << std::setw(15) << "Algo1_Cost" << std::setw(15) << "Algo0_Map_OK" << std::setw(15) << "Algo1_Map_OK"
+              << std::setw(20) << "Algo0_Time (ms)" << std::setw(20) << "Algo1_Time (ms)" << "\n";
+    std::cout << std::string(140, '-') << "\n";
 
     int idx = 0;
     for (const GraphSpec &spec : cases) {
-        try {
-            const auto [g1, g2] = GenerateExample(spec);
+        const auto [g1, g2] = GenerateExample(spec);
 
-            auto start_precise    = std::chrono::high_resolution_clock::now();
-            auto precise_mappings = algo0_func(g1, g2, 1);
-            auto end_precise      = std::chrono::high_resolution_clock::now();
+        auto start_precise    = std::chrono::high_resolution_clock::now();
+        auto precise_mappings = algo0_func(g1, g2, 1);
+        auto end_precise      = std::chrono::high_resolution_clock::now();
 
-            std::chrono::duration<double, std::milli> precise_time = end_precise - start_precise;
-            int precise_cost = precise_mappings.empty() ? -1 : CalculateMissingEdges(g1, g2, precise_mappings[0]);
-            bool precise_mapping_ok = precise_mappings.empty() ? false : VerifyMapping(g1, g2, precise_mappings[0]);
+        std::chrono::duration<double, std::milli> precise_time = end_precise - start_precise;
+        int precise_cost        = precise_mappings.empty() ? -1 : CalculateMissingEdges(g1, g2, precise_mappings[0]);
+        bool precise_mapping_ok = precise_mappings.empty() ? false : VerifyMapping(g1, g2, precise_mappings[0]);
 
-            auto start_approx    = std::chrono::high_resolution_clock::now();
-            auto approx_mappings = algo1_func(g1, g2, 1);
-            auto end_approx      = std::chrono::high_resolution_clock::now();
+        auto start_approx    = std::chrono::high_resolution_clock::now();
+        auto approx_mappings = algo1_func(g1, g2, 1);
+        auto end_approx      = std::chrono::high_resolution_clock::now();
 
-            std::chrono::duration<double, std::milli> approx_time = end_approx - start_approx;
-            int approx_cost        = approx_mappings.empty() ? -1 : CalculateMissingEdges(g1, g2, approx_mappings[0]);
-            bool approx_mapping_ok = approx_mappings.empty() ? false : VerifyMapping(g1, g2, approx_mappings[0]);
+        std::chrono::duration<double, std::milli> approx_time = end_approx - start_approx;
+        int approx_cost        = approx_mappings.empty() ? -1 : CalculateMissingEdges(g1, g2, approx_mappings[0]);
+        bool approx_mapping_ok = approx_mappings.empty() ? false : VerifyMapping(g1, g2, approx_mappings[0]);
 
-            // Format numerical values
-            std::ostringstream g1_dens_str, g2_dens_str, time0_str, time1_str;
-            g1_dens_str << std::fixed << std::setprecision(1) << spec.density_g1;
-            g2_dens_str << std::fixed << std::setprecision(1) << spec.density_g2;
-            time0_str << std::fixed << std::setprecision(3) << precise_time.count();
-            time1_str << std::fixed << std::setprecision(3) << approx_time.count();
-
-            // Create status strings
-            std::string algo0_status = precise_mapping_ok ? "OK" : "FAIL";
-            std::string algo1_status = approx_mapping_ok ? "OK" : "FAIL";
-
-            // Get row index before adding (header is row 0, so next row will be table.size())
-            size_t row_idx = table.size();
-
-            // Add row to table
-            table.add_row(
-                {std::to_string(idx++), std::to_string(spec.size_g1), std::to_string(spec.size_g2), g1_dens_str.str(),
-                 g2_dens_str.str(), spec.create_g1_based_on_g2 ? "Yes" : "No", std::to_string(precise_cost),
-                 std::to_string(approx_cost), algo0_status, algo1_status, time0_str.str(), time1_str.str()}
-            );
-
-            // Apply color formatting to status columns (columns 8 and 9, 0-indexed)
-            if (precise_mapping_ok) {
-                table[row_idx][8].format().color(tabulate::Color::green);
-            } else {
-                table[row_idx][8].format().color(tabulate::Color::red);
-            }
-
-            if (approx_mapping_ok) {
-                table[row_idx][9].format().color(tabulate::Color::green);
-            } else {
-                table[row_idx][9].format().color(tabulate::Color::red);
-            }
-        } catch (const std::exception &e) {
-            // If a test case throws, add a row with error information
-            size_t row_idx = table.size();
-            table.add_row(
-                {std::to_string(idx++), std::to_string(spec.size_g1), std::to_string(spec.size_g2),
-                 std::to_string(spec.density_g1), std::to_string(spec.density_g2),
-                 spec.create_g1_based_on_g2 ? "Yes" : "No", "ERROR", "ERROR", "ERROR", "ERROR", "N/A", "N/A"}
-            );
-            table[row_idx][8].format().color(tabulate::Color::red);
-            table[row_idx][9].format().color(tabulate::Color::red);
-        }
+        std::cout << std::left << std::setw(6) << idx++ << std::setw(8) << spec.size_g1 << std::setw(8) << spec.size_g2
+                  << std::setw(8) << std::fixed << std::setprecision(1) << spec.density_g1 << std::setw(8) << std::fixed
+                  << std::setprecision(1) << spec.density_g2 << std::setw(10)
+                  << (spec.create_g1_based_on_g2 ? "Yes" : "No") << std::setw(15) << precise_cost << std::setw(15)
+                  << approx_cost << std::setw(15) << (precise_mapping_ok ? "OK" : "FAIL") << std::setw(15)
+                  << (approx_mapping_ok ? "OK" : "FAIL") << std::setw(20) << std::fixed << std::setprecision(3)
+                  << precise_time.count() << std::setw(20) << std::fixed << std::setprecision(3) << approx_time.count()
+                  << "\n";
     }
-
-    std::cout << "Generating results table...\n\n";
-    std::cout << table << std::endl;
+    std::cout << std::string(140, '-') << "\n";
 }
 
 // ------------------------------

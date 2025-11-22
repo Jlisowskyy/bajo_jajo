@@ -17,13 +17,13 @@ enum class PreciseAlgo {
 using SigT = std::vector<Mapping> (*)(const Graph &, const Graph &, int);
 
 static constexpr std::array kPreciseAlgos{
-    std::make_tuple(AccurateBruteForce, "Brute force"),
-    std::make_tuple(AccurateAStar, "A*"),
+    std::make_tuple(AccurateBruteForce, "Brute force Algorithm"),
+    std::make_tuple(AccurateAStar, "A Start algorithm"),
 };
 
 static constexpr std::array kApproxAlgos{
-    std::make_tuple(ApproxAStar, "Approx A*"),
-    std::make_tuple(ApproxAStar5, "Approx A* 5"),
+    std::make_tuple(ApproxAStar, "Approx A Star"),
+    std::make_tuple(ApproxAStar5, "Approx A Star 5"),
 };
 
 void TestApproxOnPrecise(ApproxAlgo approx_algo, PreciseAlgo precise_algo);
