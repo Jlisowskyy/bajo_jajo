@@ -1,5 +1,6 @@
 #include "io.hpp"
 #include <cstdio>
+#include <filesystem>
 #include <fstream>
 #include "graph.hpp"
 #include "gtest/gtest.h"
@@ -32,22 +33,22 @@ class IoTest : public ::testing::Test
         g2_->AddEdges(3, 3, 4);
         g2_->AddEdges(0, 3, 5);
 
-        test_filename_ = "test_io_graphs.txt";
+        test_filename_ = std::filesystem::path("test_io_graphs.txt");
     }
 
-    void TearDown() override { std::remove(test_filename_.c_str()); }
+    void TearDown() override { std::filesystem::remove(test_filename_); }
 
     std::unique_ptr<Graph> g1_;
     std::unique_ptr<Graph> g2_;
-    std::string test_filename_;
+    std::filesystem::path test_filename_;
 };
 
 TEST_F(IoTest, WriteAndRead_RoundTrip)
 {
-    ASSERT_NO_THROW(Write(test_filename_.c_str(), std::make_tuple(std::ref(*g1_), std::ref(*g2_))));
+    ASSERT_NO_THROW(Write(test_filename_, std::make_tuple(std::ref(*g1_), std::ref(*g2_))));
 
     Graph g1_read(0), g2_read(0);
-    ASSERT_NO_THROW(std::tie(g1_read, g2_read) = Read(test_filename_.c_str()));
+    ASSERT_NO_THROW(std::tie(g1_read, g2_read) = Read(test_filename_));
 
     AssertGraphsEqual(*g1_, g1_read);
     AssertGraphsEqual(*g2_, g2_read);
@@ -62,7 +63,7 @@ TEST_F(IoTest, Read_ThrowsOnMalformedFile_IncompleteData)
     malformed_file << "0 1 0\n";
     malformed_file.close();
 
-    EXPECT_THROW(Read(test_filename_.c_str()), std::runtime_error);
+    EXPECT_THROW(Read(test_filename_), std::runtime_error);
 }
 
 TEST_F(IoTest, Read_ThrowsOnMalformedFile_InvalidSize)
@@ -71,5 +72,5 @@ TEST_F(IoTest, Read_ThrowsOnMalformedFile_InvalidSize)
     malformed_file << "0\n";
     malformed_file.close();
 
-    EXPECT_THROW(Read(test_filename_.c_str()), std::runtime_error);
+    EXPECT_THROW(Read(test_filename_), std::runtime_error);
 }

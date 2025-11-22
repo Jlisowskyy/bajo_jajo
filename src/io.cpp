@@ -1,5 +1,6 @@
 #include <io.hpp>
 
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -35,11 +36,11 @@ static int CalculateMissingEdges(const Graph &g1, const Graph &g2, const Mapping
 // implementations
 // ------------------------------
 
-std::pair<Graph, Graph> Read(const char *file)
+std::pair<Graph, Graph> Read(const std::filesystem::path &file)
 {
     std::ifstream file_stream(file);
     if (!file_stream.is_open()) {
-        throw std::runtime_error("Could not open file for reading: " + std::string(file));
+        throw std::runtime_error("Could not open file for reading: " + file.string());
     }
 
     auto read_single_graph = [](std::ifstream &fs) {
@@ -97,11 +98,11 @@ void Write(const Graph &g1, const Graph &g2, const std::vector<Mapping> &mapping
     std::cout << "--------------------------\n";
 }
 
-void Write(const char *file, const std::tuple<Graph, Graph> &graphs)
+void Write(const std::filesystem::path &file, const std::tuple<Graph, Graph> &graphs)
 {
     std::ofstream file_stream(file);
     if (!file_stream.is_open()) {
-        throw std::runtime_error("Error: Could not open file for writing: " + std::string(file));
+        throw std::runtime_error("Error: Could not open file for writing: " + file.string());
     }
 
     const auto &[g1, g2] = graphs;

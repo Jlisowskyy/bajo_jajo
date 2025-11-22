@@ -14,6 +14,7 @@ set(PROJECT_VERSION "1.0")
 set(PROJECT_AUTHOR "Jakub Lisowski")
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 17)
 
 # ------------------------------
