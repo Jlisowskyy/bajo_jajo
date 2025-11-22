@@ -210,14 +210,22 @@ static int CalculateAssignmentCost_(const Graph &g1, const Graph &g2, const Mapp
     // Iterate over all neighbors of v1 in G1 that are already mapped
     g1.IterateNeighbours(
         [&](const Vertex neighbour) {
-            if (!mapping.is_g1_mapped(neighbour)) {
-                return;
-            }
+            MappedVertex u2 = -1;
 
-            const MappedVertex u2 = mapping.get_mapping_g1_to_g2(neighbour);
+            if (neighbour == v1) {
+                u2 = static_cast<MappedVertex>(v2);
+            } else {
+                if (!mapping.is_g1_mapped(neighbour)) {
+                    return;
+                }
+                u2 = mapping.get_mapping_g1_to_g2(neighbour);
+            }
             assert(u2 != -1);
 
-            cost += CalculateEdgesAdditions_(g1, v1, neighbour, g2, v2, u2);
+            cost += CalculateSingleDirectionEdgesAdditions_(g1, v1, neighbour, g2, v2, u2);
+            if (v1 != neighbour) {
+                cost += CalculateSingleDirectionEdgesAdditions_(g1, neighbour, v1, g2, u2, v2);
+            }
         },
         v1
     );
