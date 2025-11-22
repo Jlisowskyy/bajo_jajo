@@ -19,12 +19,6 @@ add_library(${LIB_NAME} STATIC
 )
 
 # ------------------------------
-# Link dependencies
-# ------------------------------
-
-target_link_libraries(${LIB_NAME} PUBLIC libCli11)
-
-# ------------------------------
 # Add includes
 # ------------------------------
 
