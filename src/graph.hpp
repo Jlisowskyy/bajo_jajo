@@ -179,7 +179,7 @@ class Graph
     {
         Vertices num_of_neighbours = 0;
         IterateNeighbours(
-            [&](Vertex neighbour) {
+            [&](Vertex) {
                 num_of_neighbours++;
             },
             v

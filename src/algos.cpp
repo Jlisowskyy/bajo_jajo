@@ -409,7 +409,7 @@ struct MasterQueue {
         return best_idx;
     }
 
-    NODISCARD PrioArr GetPrioArr(const std::uint32_t idx) { return state_[idx]; }
+    NODISCARD PrioArr &GetPrioArr(const std::uint32_t idx) { return state_[idx]; }
 
     private:
     std::vector<PrioArr> state_;
@@ -426,15 +426,22 @@ NODISCARD std::vector<Mapping> ApproxAStar(const Graph &g1, const Graph &g2, int
     Vertices n1 = g1.GetVertices();
 
     MasterQueue master_queue = MasterQueue(n1);
-    AStarState initial       = AStarState(n1, g2.GetVertices());
-    master_queue.GetPrioArr(0).Insert(initial);
+    const Vertex v_start     = PickNextVertex_(g1, AStarState(n1, g2.GetVertices()).state);
+
+    for (Vertex v = 0; v < g2.GetVertices(); ++v) {
+        AStarState state(n1, g2.GetVertices());
+
+        state.state.set_mapping(v_start, v);
+        state.g = 0;
+        state.f = CalculateHeuristic_(g1, g2, state.state);
+        master_queue.GetPrioArr(0).Insert(state);
+    }
 
     while (true) {
         std::uint32_t idx     = master_queue.GetMinId();
         PrioArr best_prio_arr = master_queue.GetPrioArr(idx);
         AStarState best_state = best_prio_arr.GetBest();
 
-        // TODO: make sure it's correct comparison
         if (idx == n1 - 1) {
             return {best_state.state.mapping};
         }
@@ -457,8 +464,8 @@ NODISCARD std::vector<Mapping> ApproxAStar(const Graph &g1, const Graph &g2, int
             candidates.Insert(next_state);
         }
 
-        PrioArr next_prio_arr = master_queue.GetPrioArr(idx + 1);
-        for (int i = 0; i < R; ++i) {
+        PrioArr &next_prio_arr = master_queue.GetPrioArr(idx + 1);
+        while (!candidates.IsEmpty()) {
             next_prio_arr.Insert(candidates.GetBest());
         }
     }
