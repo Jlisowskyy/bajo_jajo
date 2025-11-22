@@ -437,7 +437,7 @@ NODISCARD std::vector<Mapping> ApproxAStar(const Graph &g1, const Graph &g2, int
             return {best_state.state.mapping};
         }
 
-        Vertex next_vertex = master_queue.GetMinId();
+        Vertex next_vertex = PickNextVertex_(g1, best_state.state);
         PrioArr candidates;
         for (Vertex mapping_candidate : best_state.state.availableVertices) {
             AStarState next_state;
