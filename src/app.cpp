@@ -163,6 +163,7 @@ void Run()
         TestApproxOnPrecise(ApproxAlgo::kApproxAStar, PreciseAlgo::kAStar);
         TestApproxOnApprox(ApproxAlgo::kApproxAStar, ApproxAlgo::kApproxAStar5);
         TestApproxOnPrecise(ApproxAlgo::kApproxAStar, PreciseAlgo::kBruteForce);
+        TestPreciseOnPrecise(PreciseAlgo::kBruteForce, PreciseAlgo::kBruteForce);
         TestPreciseOnPrecise(PreciseAlgo::kBruteForce, PreciseAlgo::kAStar);
         return;
     }
