@@ -329,7 +329,7 @@ std::vector<Mapping> AccurateAStar(const Graph &g1, const Graph &g2, const int k
 // Approx A star
 // ------------------------------
 
-static constexpr std::uint32_t R = 5;
+static constexpr std::uint32_t R = 1;
 
 struct PrioArr {
     bool IsEmpty() { return used_ == 0; }
