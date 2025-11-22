@@ -332,6 +332,8 @@ std::vector<Mapping> AccurateAStar(const Graph &g1, const Graph &g2, const int k
 static constexpr std::uint32_t R = 5;
 
 struct PrioArr {
+    bool IsEmpty() { return used_ == 0; }
+
     AStarState &PeekBest()
     {
         assert(used_ > 0);
@@ -391,7 +393,7 @@ struct MasterQueue {
         std::int64_t best_idx = 0;
 
         for (std::int64_t idx = highest_empty + 1; idx < static_cast<std::int64_t>(state_.size()); ++idx) {
-            if (state_[idx].PeekBest().f < min) {
+            if (!state_[idx].IsEmpty() && state_[idx].PeekBest().f < min) {
                 min      = state_[idx].PeekBest().f;
                 best_idx = idx;
             }
@@ -455,8 +457,8 @@ NODISCARD std::vector<Mapping> ApproxAStar(const Graph &g1, const Graph &g2, int
             candidates.Insert(next_state);
         }
 
+        PrioArr next_prio_arr = master_queue.GetPrioArr(idx + 1);
         for (int i = 0; i < R; ++i) {
-            PrioArr next_prio_arr = master_queue.GetPrioArr(idx + 1);
             next_prio_arr.Insert(candidates.GetBest());
         }
     }
