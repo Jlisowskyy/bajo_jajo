@@ -332,8 +332,55 @@ std::vector<Mapping> AccurateAStar(const Graph &g1, const Graph &g2, const int k
 static constexpr std::uint32_t R = 5;
 
 struct PrioArr {
-    const AStarState &GetBest();
-    void Insert(AStarState s);
+    AStarState GetBest()
+    {
+        assert(used > 0);
+
+        AStarState rv = table_[0];
+
+        for (size_t idx = 0; idx < used_ - 1; ++idx) {
+            table_[idx] = table_[idx + 1];
+        }
+        used_ = used_ - 1;
+
+        return rv;
+    }
+
+    void Insert(const AStarState &state)
+    {
+        if (used_ < R) {
+            table_[used_++] = state;
+            return;
+        }
+
+        if (state.f >= table_[R - 1].f) {
+            return;
+        }
+
+        AStarState buff{};
+        size_t idx;
+        for (idx = 0; idx < R; ++idx) {
+            if (state.f < table_[idx].f) {
+                buff        = table_[idx];
+                table_[idx] = state;
+                break;
+            }
+        }
+
+        for (idx = idx + 1; idx < R; ++idx) {
+            std::swap(table_[idx], buff);
+        }
+    }
+
+    private:
+    AStarState table_[R]{};
+    size_t used_{};
+};
+
+struct MasterQueue {
+    MasterQueue(size_t size);
+    NODISCARD std::uint32_t GetMinId();
+    NODISCARD PrioArr GetPrioArr(std::uint32_t idx);
 };
 
 NODISCARD std::vector<Mapping> ApproxAStar(const Graph &g1, const Graph &g2, int k) { return {}; }
