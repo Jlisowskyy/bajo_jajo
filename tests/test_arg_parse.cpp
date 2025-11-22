@@ -59,6 +59,22 @@ TEST_F(AppTest, ParseArgs_CombinedFlags)
     EXPECT_TRUE(g_AppState.run_approx);
 }
 
+TEST_F(AppTest, ParseArgs_KOption)
+{
+    const char *const argv[] = {"app", "--k", "5", "test.txt"};
+    ASSERT_NO_THROW(ParseArgs(4, argv));
+    EXPECT_STREQ(g_AppState.file, "test.txt");
+    EXPECT_EQ(g_AppState.num_results, 5);
+}
+
+TEST_F(AppTest, ParseArgs_KOption_DefaultValue)
+{
+    const char *const argv[] = {"app", "test.txt"};
+    ASSERT_NO_THROW(ParseArgs(2, argv));
+    EXPECT_STREQ(g_AppState.file, "test.txt");
+    EXPECT_EQ(g_AppState.num_results, 1);  // Default value
+}
+
 TEST_F(AppTest, ParseArgs_GenFlag_ValidTrue)
 {
     const char *const argv[] = {"app", "--gen", "10", "20", "0.5", "0.8", "true", "output.txt"};
@@ -108,52 +124,22 @@ TEST_F(AppTest, ParseArgs_NoFileOrGenOrInternalTest_Throws)
 TEST_F(AppTest, ParseArgs_MultipleFiles_Throws)
 {
     const char *const argv[] = {"app", "file1.txt", "file2.txt"};
-    EXPECT_THROW(
-        {
-            try {
-                ParseArgs(3, argv);
-            } catch (const std::runtime_error &e) {
-                EXPECT_STREQ(e.what(), "Multiple filenames provided.");
-                throw;
-            }
-        },
-        std::runtime_error
-    );
+    // CLI11 will throw a ParseError for too many positional arguments
+    EXPECT_THROW(ParseArgs(3, argv), std::runtime_error);
 }
 
 TEST_F(AppTest, ParseArgs_UnknownOption_Throws)
 {
     const char *const argv[] = {"app", "--unknown", "file.txt"};
-    EXPECT_THROW(
-        {
-            try {
-                ParseArgs(3, argv);
-            } catch (const std::runtime_error &e) {
-                EXPECT_STREQ(e.what(), "Unknown option --unknown");
-                throw;
-            }
-        },
-        std::runtime_error
-    );
+    // CLI11 will throw a ParseError for unknown options
+    EXPECT_THROW(ParseArgs(3, argv), std::runtime_error);
 }
 
 TEST_F(AppTest, ParseArgs_GenTooFewArgs_Throws)
 {
     const char *const argv[] = {"app", "--gen", "1", "2", "0.1", "0.2", "file.txt"};
-    EXPECT_THROW(
-        {
-            try {
-                ParseArgs(7, argv);
-            } catch (const std::runtime_error &e) {
-                EXPECT_STREQ(
-                    e.what(),
-                    "Error parsing --gen arguments: Invalid boolean value for 'base', must be 'true' or 'false'"
-                );
-                throw;
-            }
-        },
-        std::runtime_error
-    );
+    // CLI11 will throw a ParseError for insufficient arguments to --gen
+    EXPECT_THROW(ParseArgs(7, argv), std::runtime_error);
 }
 
 TEST_F(AppTest, ParseArgs_GenInvalidBool_Throws)
