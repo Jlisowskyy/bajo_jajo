@@ -1,5 +1,6 @@
 #include "algos.hpp"
 
+#include <boost/heap/pairing_heap.hpp>
 #include <cassert>
 #include <climits>
 #include <map>
@@ -147,7 +148,7 @@ static Vertex PickNextVertex_(const Graph &g1, const State &state)
 
     Vertex best_v1                = ~static_cast<Vertex>(0);
     Vertices max_mapped_neighbors = 0;
-    Vertices min_total_neighbors  = ~static_cast<Vertices>(0);
+    Vertices max_total_neighbors  = 0;
 
     for (Vertex v1 = 0; v1 < g1.GetVertices(); ++v1) {
         if (state.mapping.is_g1_mapped(v1)) {
@@ -167,13 +168,14 @@ static Vertex PickNextVertex_(const Graph &g1, const State &state)
             v1
         );
 
-        // Choose vertex with most mapped neighbors
-        // Break ties by choosing vertex with fewer total neighbors
+        // FAIL-FIRST:
+        // Choose vertex with most mapped neighbors (most constrained)
+        // Break ties by choosing vertex with MORE total neighbors (most constraining)
         if (mapped_neighbours > max_mapped_neighbors ||
-            (mapped_neighbours == max_mapped_neighbors && total_neighbours < min_total_neighbors)) {
+            (mapped_neighbours == max_mapped_neighbors && total_neighbours >= max_total_neighbors)) {
             best_v1              = v1;
             max_mapped_neighbors = mapped_neighbours;
-            min_total_neighbors  = total_neighbours;
+            max_total_neighbors  = total_neighbours;
         }
     }
 
@@ -236,14 +238,19 @@ static int CalculateAssignmentCost_(const Graph &g1, const Graph &g2, const Mapp
 static int CalculateHeuristic_(const Graph &g1, const Graph &g2, const State &state)
 {
     int h = 0;
+    // Create a temporary mask of available vertices (inverse of used_mask)
+    // Note: This operation creates a copy, but ensures efficient iteration over available vertices
+    boost::dynamic_bitset<> available_mask = ~state.used_mask;
+
     for (Vertex v1 = 0; v1 < g1.GetVertices(); ++v1) {
         if (state.mapping.is_g1_mapped(v1)) {
             continue;
         }
         int min_cost = INT_MAX;
 
-        // Find the minimum cost assignment to any available vertex in G2
-        for (Vertex v2 : state.availableVertices) {
+        // Iterate over all available vertices in G2 using the bitset
+        for (Vertex v2 = available_mask.find_first(); v2 != static_cast<Vertex>(boost::dynamic_bitset<>::npos);
+             v2        = available_mask.find_next(v2)) {
             int cost_candidate = 0;
             g1.IterateNeighbours(
                 [&](Vertex neighbour) {
@@ -294,6 +301,9 @@ std::vector<Mapping> AccurateAStar(const Graph &g1, const Graph &g2, const int k
     AStarState initial = AStarState(g1.GetVertices(), g2.GetVertices());
     pq.push(initial);
 
+    // To iterate available vertices in the loop, we also use bitset logic
+    // though accurate A* state structure is the same.
+
     while (!pq.empty()) {
         AStarState current = pq.top();
         pq.pop();
@@ -306,7 +316,9 @@ std::vector<Mapping> AccurateAStar(const Graph &g1, const Graph &g2, const int k
         const Vertex v1 = PickNextVertex_(g1, current.state);
 
         // Try mapping v1 to each available vertex in G2
-        for (Vertex v2 : current.state.availableVertices) {
+        boost::dynamic_bitset<> available_mask = ~current.state.used_mask;
+        for (Vertex v2 = available_mask.find_first(); v2 != static_cast<Vertex>(boost::dynamic_bitset<>::npos);
+             v2        = available_mask.find_next(v2)) {
             AStarState next_state;
             next_state.state = current.state;
             next_state.state.set_mapping(v1, v2);
@@ -383,38 +395,86 @@ struct PrioArr {
     size_t used_{0};
 };
 
+// Heap Node for pairing_heap
+struct HeapNode {
+    int f_val;
+    std::uint32_t level_idx;
+
+    // Comparator for Min-Heap behavior in a Priority Queue
+    // A < B means A has lower priority. We want smaller f_val to have HIGHER priority.
+    // So A < B should return true if A.f_val > B.f_val
+    bool operator<(const HeapNode &other) const { return f_val > other.f_val; }
+};
+
 template <std::uint32_t R>
 struct MasterQueue {
-    MasterQueue(const size_t size) : state_(size), counters_(size, R) {}
+    using heap_t        = boost::heap::pairing_heap<HeapNode, boost::heap::mutable_<true>>;
+    using handle_type_t = typename heap_t::handle_type;
 
-    NODISCARD std::uint32_t GetMinId()
+    MasterQueue(const size_t size) : state_(size), handles_(size)
     {
-        int min               = INT_MAX;
-        std::int64_t best_idx = 0;
-
-        for (std::int64_t idx = highest_empty + 1; idx < static_cast<std::int64_t>(state_.size()); ++idx) {
-            if (!state_[idx].IsEmpty() && state_[idx].PeekBest().f < min) {
-                min      = state_[idx].PeekBest().f;
-                best_idx = idx;
-            }
+        // Initialize handles to null/empty
+        for (size_t i = 0; i < size; ++i) {
+            handles_[i] = handle_type_t{};
         }
-
-        counters_[best_idx]--;
-        if (counters_[best_idx] == 0) {
-            assert(best_idx >= highest_empty);
-            highest_empty = best_idx;
-        }
-
-        assert(min != INT_MAX);
-        return best_idx;
     }
 
-    NODISCARD PrioArr<R> &GetPrioArr(const std::uint32_t idx) { return state_[idx]; }
+    // Insert state into the specified level and update heap
+    void Insert(const std::uint32_t idx, const AStarState &state)
+    {
+        PrioArr<R> &prio_arr = state_[idx];
+        bool was_empty       = prio_arr.IsEmpty();
+        int old_best_f       = was_empty ? INT_MAX : prio_arr.PeekBest().f;
+
+        prio_arr.Insert(state);
+
+        int new_best_f = prio_arr.PeekBest().f;
+
+        // If the level was empty, insert into heap
+        if (was_empty) {
+            handles_[idx] = heap_.push({new_best_f, idx});
+        } else {
+            // If priority improved, decrease key
+            if (new_best_f < old_best_f) {
+                // Check if handle is valid (it should be if not empty)
+                heap_.decrease(handles_[idx], {new_best_f, idx});
+            }
+        }
+    }
+
+    // Extract the global best state (min f) across all levels
+    NODISCARD std::pair<std::uint32_t, AStarState> PopMin()
+    {
+        assert(!heap_.empty());
+
+        // 1. Get the best level from heap
+        HeapNode top = heap_.top();
+        heap_.pop();
+
+        const std::uint32_t idx = top.level_idx;
+
+        // 2. Extract best state from that level
+        PrioArr<R> &prio_arr = state_[idx];
+        AStarState best      = prio_arr.GetBest();
+
+        // 3. If PrioArr still has items, put it back into heap with new best f
+        if (!prio_arr.IsEmpty()) {
+            int next_best_f = prio_arr.PeekBest().f;
+            handles_[idx]   = heap_.push({next_best_f, idx});
+        } else {
+            // Level effectively removed from heap
+            handles_[idx] = handle_type_t{};
+        }
+
+        return {idx, best};
+    }
+
+    bool IsEmpty() const { return heap_.empty(); }
 
     private:
     std::vector<PrioArr<R>> state_;
-    std::vector<std::uint32_t> counters_;
-    std::int64_t highest_empty = -1;
+    heap_t heap_;
+    std::vector<handle_type_t> handles_;
 };
 
 template <std::uint32_t R = 1>
@@ -426,8 +486,8 @@ NODISCARD std::vector<Mapping> ApproxAStar_(const Graph &g1, const Graph &g2, in
 
     Vertices n1 = g1.GetVertices();
 
-    MasterQueue master_queue = MasterQueue<R>(n1);
-    const Vertex v_start     = PickNextVertex_(g1, AStarState(n1, g2.GetVertices()).state);
+    MasterQueue<R> master_queue(n1);
+    const Vertex v_start = PickNextVertex_(g1, AStarState(n1, g2.GetVertices()).state);
 
     for (Vertex v = 0; v < g2.GetVertices(); ++v) {
         AStarState state(n1, g2.GetVertices());
@@ -435,21 +495,24 @@ NODISCARD std::vector<Mapping> ApproxAStar_(const Graph &g1, const Graph &g2, in
         state.state.set_mapping(v_start, v);
         state.g = 0;
         state.f = CalculateHeuristic_(g1, g2, state.state);
-        master_queue.GetPrioArr(0).Insert(state);
+        master_queue.Insert(0, state);
     }
 
-    while (true) {
-        std::uint32_t idx         = master_queue.GetMinId();
-        PrioArr<R> &best_prio_arr = master_queue.GetPrioArr(idx);
-        AStarState best_state     = best_prio_arr.GetBest();
+    while (!master_queue.IsEmpty()) {
+        // Extract the globally best state
+        auto [idx, best_state] = master_queue.PopMin();
 
         if (idx == n1 - 1) {
             return {best_state.state.mapping};
         }
 
         Vertex next_vertex = PickNextVertex_(g1, best_state.state);
-        PrioArr<R> candidates;
-        for (Vertex mapping_candidate : best_state.state.availableVertices) {
+
+        // Iterate available vertices using bitset
+        boost::dynamic_bitset<> available_mask = ~best_state.state.used_mask;
+        for (Vertex mapping_candidate = available_mask.find_first();
+             mapping_candidate != static_cast<Vertex>(boost::dynamic_bitset<>::npos);
+             mapping_candidate = available_mask.find_next(mapping_candidate)) {
             AStarState next_state;
             next_state.state = best_state.state;
             next_state.state.set_mapping(next_vertex, mapping_candidate);
@@ -462,12 +525,8 @@ NODISCARD std::vector<Mapping> ApproxAStar_(const Graph &g1, const Graph &g2, in
             const int h  = CalculateHeuristic_(g1, g2, next_state.state);
             next_state.f = next_state.g + h;
 
-            candidates.Insert(next_state);
-        }
-
-        PrioArr<R> &next_prio_arr = master_queue.GetPrioArr(idx + 1);
-        while (!candidates.IsEmpty()) {
-            next_prio_arr.Insert(candidates.GetBest());
+            // Insert into next level
+            master_queue.Insert(idx + 1, next_state);
         }
     }
 

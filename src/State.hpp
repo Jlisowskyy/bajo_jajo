@@ -7,6 +7,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include <boost/dynamic_bitset.hpp>
+
 #include "graph.hpp"
 
 using MappedVertex                            = std::int32_t;
@@ -174,16 +176,13 @@ class Mapping
 
 struct State {
     Mapping mapping;
-    std::unordered_set<Vertex> availableVertices;
+    boost::dynamic_bitset<> used_mask;
     Vertices size_g1_;
     Vertices size_g2_;
 
     State(const Vertices size_g1, const Vertices size_g2)
-        : mapping(size_g1, size_g2), size_g1_(size_g1), size_g2_(size_g2)
+        : mapping(size_g1, size_g2), used_mask(size_g2), size_g1_(size_g1), size_g2_(size_g2)
     {
-        for (Vertex i = 0; i < size_g2_; ++i) {
-            availableVertices.insert(i);
-        }
     }
 
     State(const State &other)            = default;
@@ -193,11 +192,13 @@ struct State {
     {
         const MappedVertex old_g2 = mapping.get_mapping_g1_to_g2(g1_vertex);
         if (old_g2 != -1) {
-            availableVertices.insert(old_g2);
+            // Mark old G2 vertex as unused
+            used_mask[old_g2] = 0;
         }
 
         mapping.set_mapping(g1_vertex, g2_vertex);
-        availableVertices.erase(g2_vertex);
+        // Mark new G2 vertex as used
+        used_mask[g2_vertex] = 1;
     }
 };
 
