@@ -22,7 +22,7 @@ add_library(${LIB_NAME} STATIC
 # Link dependencies
 # ------------------------------
 
-target_link_libraries(${LIB_NAME} PUBLIC libCli11)
+target_link_libraries(${LIB_NAME} PUBLIC libCli11 libTabulate)
 
 # Link filesystem library if needed (for older compilers)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "9.0")
