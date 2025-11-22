@@ -332,6 +332,8 @@ std::vector<Mapping> AccurateAStar(const Graph &g1, const Graph &g2, const int k
 static constexpr std::uint32_t R = 5;
 
 struct PrioArr {
+    AStarState &PeekBest() { return table_[0]; }
+
     AStarState GetBest()
     {
         assert(used > 0);
@@ -378,9 +380,36 @@ struct PrioArr {
 };
 
 struct MasterQueue {
-    MasterQueue(size_t size);
-    NODISCARD std::uint32_t GetMinId();
-    NODISCARD PrioArr GetPrioArr(std::uint32_t idx);
+    MasterQueue(const size_t size) : state_(size), counters_(size, R) {}
+
+    NODISCARD std::uint32_t GetMinId()
+    {
+        int min               = INT_MAX;
+        std::int64_t best_idx = 0;
+
+        for (std::int64_t idx = highest_empty + 1; idx < static_cast<std::int64_t>(state_.size()); ++idx) {
+            if (state_[idx].PeekBest().f < min) {
+                min      = state_[idx].PeekBest().f;
+                best_idx = idx;
+            }
+        }
+
+        counters_[best_idx]--;
+        if (counters_[best_idx] == 0) {
+            assert(best_idx >= highest_empty);
+            highest_empty = best_idx;
+        }
+
+        assert(min != INT_MAX);
+        return best_idx;
+    }
+
+    NODISCARD PrioArr GetPrioArr(const std::uint32_t idx) { return state_[idx]; }
+
+    private:
+    std::vector<PrioArr> state_;
+    std::vector<std::uint32_t> counters_;
+    std::int64_t highest_empty = -1;
 };
 
 NODISCARD std::vector<Mapping> ApproxAStar(const Graph &g1, const Graph &g2, int k) { return {}; }
