@@ -112,13 +112,19 @@ static void RunTest_(const CollT &cases, std::tuple<SigT, const char *> algo0, s
     const auto &[algo1_func, algo1_name] = algo1;
 
     std::cout << "--- Testing Correctness: " << algo0_name << " vs " << algo1_name << " ---\n";
-    std::cout << "Running " << cases.size() << " test cases...\n";
+    std::cout << "Running " << cases.size() << " test cases...\n\n";
 
-    tabulate::Table table;
-    table.add_row(
-        {"Idx", "G1 Size", "G2 Size", "G1 Dens", "G2 Dens", "Base", "Algo0 Cost", "Algo1 Cost", "Algo0 Status",
-         "Algo1 Status", "Time0 (ms)", "Time1 (ms)"}
+    const std::vector<size_t> column_widths = {5, 9, 9, 9, 9, 6, 12, 12, 14, 14, 15, 15};
+    tabulate::Table header;
+    header.add_row(
+        {"Idx", "G1 Size", "G2 Size", "G1 Dens", "G2 Dens", "Base", std::string(algo0_name) + " Cost",
+         std::string(algo1_name) + " Cost", std::string(algo0_name) + " Status", std::string(algo1_name) + " Status",
+         std::string(algo0_name) + " Time (ms)", std::string(algo1_name) + " Time (ms)"}
     );
+    for (size_t i = 0; i < column_widths.size(); ++i) {
+        header[0][i].format().width(column_widths[i]);
+    }
+    std::cout << header << std::endl;
 
     int idx = 0;
     for (const GraphSpec &spec : cases) {
@@ -152,43 +158,63 @@ static void RunTest_(const CollT &cases, std::tuple<SigT, const char *> algo0, s
             std::string algo0_status = precise_mapping_ok ? "OK" : "FAIL";
             std::string algo1_status = approx_mapping_ok ? "OK" : "FAIL";
 
-            // Get row index before adding (header is row 0, so next row will be table.size())
-            size_t row_idx = table.size();
-
-            // Add row to table
-            table.add_row(
+            // Create a new table for this row
+            tabulate::Table row_table;
+            row_table.add_row(
                 {std::to_string(idx++), std::to_string(spec.size_g1), std::to_string(spec.size_g2), g1_dens_str.str(),
                  g2_dens_str.str(), spec.create_g1_based_on_g2 ? "Yes" : "No", std::to_string(precise_cost),
                  std::to_string(approx_cost), algo0_status, algo1_status, time0_str.str(), time1_str.str()}
             );
 
+            // Apply fixed widths to row
+            for (size_t i = 0; i < column_widths.size(); ++i) {
+                row_table[0][i].format().width(column_widths[i]);
+            }
+
+            // Hide top border to avoid doubled lines
+            row_table.format().hide_border_top();
+
             // Apply color formatting to status columns (columns 8 and 9, 0-indexed)
             if (precise_mapping_ok) {
-                table[row_idx][8].format().color(tabulate::Color::green);
+                row_table[0][8].format().color(tabulate::Color::green);
             } else {
-                table[row_idx][8].format().color(tabulate::Color::red);
+                row_table[0][8].format().color(tabulate::Color::red);
             }
 
             if (approx_mapping_ok) {
-                table[row_idx][9].format().color(tabulate::Color::green);
+                row_table[0][9].format().color(tabulate::Color::green);
             } else {
-                table[row_idx][9].format().color(tabulate::Color::red);
+                row_table[0][9].format().color(tabulate::Color::red);
             }
+
+            // Move cursor up by one line and print this row immediately
+            std::cout << "\033[F";
+            std::cout << row_table << std::endl;
         } catch (const std::exception &e) {
-            // If a test case throws, add a row with error information
-            size_t row_idx = table.size();
-            table.add_row(
+            // If a test case throws, create and print error row
+            tabulate::Table error_table;
+            error_table.add_row(
                 {std::to_string(idx++), std::to_string(spec.size_g1), std::to_string(spec.size_g2),
                  std::to_string(spec.density_g1), std::to_string(spec.density_g2),
                  spec.create_g1_based_on_g2 ? "Yes" : "No", "ERROR", "ERROR", "ERROR", "ERROR", "N/A", "N/A"}
             );
-            table[row_idx][8].format().color(tabulate::Color::red);
-            table[row_idx][9].format().color(tabulate::Color::red);
+
+            // Apply fixed widths to error row
+            for (size_t i = 0; i < column_widths.size(); ++i) {
+                error_table[0][i].format().width(column_widths[i]);
+            }
+
+            // Hide top border to avoid doubled lines
+            error_table.format().hide_border_top();
+
+            error_table[0][8].format().color(tabulate::Color::red);
+            error_table[0][9].format().color(tabulate::Color::red);
+
+            std::cout << error_table << std::endl;
         }
     }
 
-    std::cout << "Generating results table...\n\n";
-    std::cout << table << std::endl;
+    std::cout << "\nAll test cases completed!" << std::endl;
 }
 
 // ------------------------------

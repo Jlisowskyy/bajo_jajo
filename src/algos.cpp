@@ -439,9 +439,8 @@ NODISCARD std::vector<Mapping> ApproxAStar_(const Graph &g1, const Graph &g2, in
     }
 
     while (true) {
-        std::uint32_t idx         = master_queue.GetMinId();
-        PrioArr<R> &best_prio_arr = master_queue.GetPrioArr(idx);
-        AStarState best_state     = best_prio_arr.GetBest();
+        std::uint32_t idx     = master_queue.GetMinId();
+        AStarState best_state = master_queue.GetPrioArr(idx).GetBest();
 
         if (idx == n1 - 1) {
             return {best_state.state.mapping};
