@@ -6,7 +6,7 @@
 #include <array>
 #include <tuple>
 
-enum class ApproxAlgo { kApproxAStar = 0, kLast };
+enum class ApproxAlgo { kApproxAStar = 0, kApproxAStar5, kLast };
 
 enum class PreciseAlgo {
     kBruteForce = 0,
@@ -23,6 +23,7 @@ static constexpr std::array kPreciseAlgos{
 
 static constexpr std::array kApproxAlgos{
     std::make_tuple(ApproxAStar, "Approx A Star"),
+    std::make_tuple(ApproxAStar5, "Approx A Star 5"),
 };
 
 void TestApproxOnPrecise(ApproxAlgo approx_algo, PreciseAlgo precise_algo);

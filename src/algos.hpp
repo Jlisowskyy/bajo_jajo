@@ -9,6 +9,7 @@
 NODISCARD std::vector<Mapping> AccurateBruteForce(const Graph &g1, const Graph &g2, int k);
 NODISCARD std::vector<Mapping> AccurateAStar(const Graph &g1, const Graph &g2, int k);
 NODISCARD std::vector<Mapping> ApproxAStar(const Graph &g1, const Graph &g2, int k);
+NODISCARD std::vector<Mapping> ApproxAStar5(const Graph &g1, const Graph &g2, int k);
 
 NODISCARD inline std::vector<Mapping> Accurate(const Graph &g1, const Graph &g2, const int k)
 {

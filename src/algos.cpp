@@ -329,8 +329,7 @@ std::vector<Mapping> AccurateAStar(const Graph &g1, const Graph &g2, const int k
 // Approx A star
 // ------------------------------
 
-static constexpr std::uint32_t R = 1;
-
+template <std::uint32_t R>
 struct PrioArr {
     bool IsEmpty() { return used_ == 0; }
 
@@ -384,6 +383,7 @@ struct PrioArr {
     size_t used_{0};
 };
 
+template <std::uint32_t R>
 struct MasterQueue {
     MasterQueue(const size_t size) : state_(size), counters_(size, R) {}
 
@@ -409,15 +409,16 @@ struct MasterQueue {
         return best_idx;
     }
 
-    NODISCARD PrioArr &GetPrioArr(const std::uint32_t idx) { return state_[idx]; }
+    NODISCARD PrioArr<R> &GetPrioArr(const std::uint32_t idx) { return state_[idx]; }
 
     private:
-    std::vector<PrioArr> state_;
+    std::vector<PrioArr<R>> state_;
     std::vector<std::uint32_t> counters_;
     std::int64_t highest_empty = -1;
 };
 
-NODISCARD std::vector<Mapping> ApproxAStar(const Graph &g1, const Graph &g2, int k)
+template <std::uint32_t R = 1>
+NODISCARD std::vector<Mapping> ApproxAStar_(const Graph &g1, const Graph &g2, int k)
 {
     if (g1.GetVertices() > g2.GetVertices()) {
         return {};
@@ -425,7 +426,7 @@ NODISCARD std::vector<Mapping> ApproxAStar(const Graph &g1, const Graph &g2, int
 
     Vertices n1 = g1.GetVertices();
 
-    MasterQueue master_queue = MasterQueue(n1);
+    MasterQueue master_queue = MasterQueue<R>(n1);
     const Vertex v_start     = PickNextVertex_(g1, AStarState(n1, g2.GetVertices()).state);
 
     for (Vertex v = 0; v < g2.GetVertices(); ++v) {
@@ -447,7 +448,7 @@ NODISCARD std::vector<Mapping> ApproxAStar(const Graph &g1, const Graph &g2, int
         }
 
         Vertex next_vertex = PickNextVertex_(g1, best_state.state);
-        PrioArr candidates;
+        PrioArr<R> candidates;
         for (Vertex mapping_candidate : best_state.state.availableVertices) {
             AStarState next_state;
             next_state.state = best_state.state;
@@ -464,11 +465,18 @@ NODISCARD std::vector<Mapping> ApproxAStar(const Graph &g1, const Graph &g2, int
             candidates.Insert(next_state);
         }
 
-        PrioArr &next_prio_arr = master_queue.GetPrioArr(idx + 1);
+        PrioArr<R> &next_prio_arr = master_queue.GetPrioArr(idx + 1);
         while (!candidates.IsEmpty()) {
             next_prio_arr.Insert(candidates.GetBest());
         }
     }
 
     return {};
+}
+
+NODISCARD std::vector<Mapping> ApproxAStar(const Graph &g1, const Graph &g2, int k) { return ApproxAStar_(g1, g2, k); }
+
+NODISCARD std::vector<Mapping> ApproxAStar5(const Graph &g1, const Graph &g2, int k)
+{
+    return ApproxAStar_<5>(g1, g2, k);
 }

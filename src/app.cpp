@@ -145,7 +145,7 @@ void Run()
         TRACE("Running internal tests...");
         // TestPreciseOnPrecise(PreciseAlgo::kBruteForce, PreciseAlgo::kBruteForce);
         // TestPreciseOnPrecise(PreciseAlgo::kBruteForce, PreciseAlgo::kAStar);
-        TestApproxOnApprox(ApproxAlgo::kApproxAStar, ApproxAlgo::kApproxAStar);
+        TestApproxOnApprox(ApproxAlgo::kApproxAStar, ApproxAlgo::kApproxAStar5);
         TestApproxOnPrecise(ApproxAlgo::kApproxAStar, PreciseAlgo::kBruteForce);
         return;
     }
