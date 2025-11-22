@@ -415,4 +415,51 @@ struct MasterQueue {
     std::int64_t highest_empty = -1;
 };
 
-NODISCARD std::vector<Mapping> ApproxAStar(const Graph &g1, const Graph &g2, int k) { return {}; }
+NODISCARD std::vector<Mapping> ApproxAStar(const Graph &g1, const Graph &g2, int k)
+{
+    if (g1.GetVertices() > g2.GetVertices()) {
+        return {};
+    }
+
+    Vertices n1 = g1.GetVertices();
+
+    MasterQueue master_queue = MasterQueue(n1);
+    AStarState initial       = AStarState(n1, g2.GetVertices());
+    master_queue.GetPrioArr(0).Insert(initial);
+
+    while (true) {
+        std::uint32_t idx     = master_queue.GetMinId();
+        PrioArr best_prio_arr = master_queue.GetPrioArr(idx);
+        AStarState best_state = best_prio_arr.GetBest();
+
+        // TODO: make sure it's correct comparison
+        if (idx == n1 - 1) {
+            return {best_state.state.mapping};
+        }
+
+        Vertex next_vertex = master_queue.GetMinId();
+        PrioArr candidates;
+        for (Vertex mapping_candidate : best_state.state.availableVertices) {
+            AStarState next_state;
+            next_state.state = best_state.state;
+            next_state.state.set_mapping(next_vertex, mapping_candidate);
+
+            const int cost_increment =
+                CalculateAssignmentCost_(g1, g2, best_state.state.mapping, next_vertex, mapping_candidate);
+            next_state.g = best_state.g + cost_increment;
+
+            // Calculate heuristic
+            const int h  = CalculateHeuristic_(g1, g2, next_state.state);
+            next_state.f = next_state.g + h;
+
+            candidates.Insert(next_state);
+        }
+
+        for (int i = 0; i < R; ++i) {
+            PrioArr next_prio_arr = master_queue.GetPrioArr(idx + 1);
+            next_prio_arr.Insert(candidates.GetBest());
+        }
+    }
+
+    return {};
+}
