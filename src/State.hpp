@@ -2,10 +2,9 @@
 #define STATE_HPP
 
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
-#include <set>
-#include <unordered_map>
-#include <unordered_set>
+#include <vector>
 
 #include <boost/dynamic_bitset.hpp>
 
@@ -19,46 +18,16 @@ class Mapping
     public:
     Mapping(const Vertices size_g1, const Vertices size_g2) : size_g1_(size_g1), size_g2_(size_g2), mapped_count_(0)
     {
-        mapping_         = new MappedVertex[size_g1_];
-        reverse_mapping_ = new MappedVertex[size_g2_];
-
-        std::fill(mapping_, mapping_ + size_g1_, kUnmappedVertex);
-        std::fill(reverse_mapping_, reverse_mapping_ + size_g2_, kUnmappedVertex);
+        mapping_.resize(size_g1, kUnmappedVertex);
+        reverse_mapping_.resize(size_g2, kUnmappedVertex);
     }
 
-    ~Mapping()
-    {
-        delete[] mapping_;
-        delete[] reverse_mapping_;
-    }
-
-    Mapping(const Mapping &other)
-        : size_g1_(other.size_g1_), size_g2_(other.size_g2_), mapped_count_(other.mapped_count_)
-    {
-        mapping_         = new MappedVertex[size_g1_];
-        reverse_mapping_ = new MappedVertex[size_g2_];
-
-        std::copy(other.mapping_, other.mapping_ + size_g1_, mapping_);
-        std::copy(other.reverse_mapping_, other.reverse_mapping_ + size_g2_, reverse_mapping_);
-    }
-
-    Mapping &operator=(const Mapping &other)
-    {
-        if (this != &other) {
-            if (size_g1_ != other.size_g1_ || size_g2_ != other.size_g2_) {
-                delete[] mapping_;
-                delete[] reverse_mapping_;
-                size_g1_         = other.size_g1_;
-                size_g2_         = other.size_g2_;
-                mapping_         = new MappedVertex[size_g1_];
-                reverse_mapping_ = new MappedVertex[size_g2_];
-            }
-            std::copy(other.mapping_, other.mapping_ + size_g1_, mapping_);
-            std::copy(other.reverse_mapping_, other.reverse_mapping_ + size_g2_, reverse_mapping_);
-            mapped_count_ = other.mapped_count_;
-        }
-        return *this;
-    }
+    // Default copy/move/destructor are fine now because of std::vector
+    Mapping(const Mapping &other)                = default;
+    Mapping(Mapping &&other) noexcept            = default;
+    Mapping &operator=(const Mapping &other)     = default;
+    Mapping &operator=(Mapping &&other) noexcept = default;
+    ~Mapping()                                   = default;
 
     bool operator==(const Mapping &other) const
     {
@@ -68,12 +37,8 @@ class Mapping
         if (size_g1_ != other.size_g1_ || size_g2_ != other.size_g2_ || mapped_count_ != other.mapped_count_) {
             return false;
         }
-        for (Vertex i = 0; i < static_cast<Vertex>(size_g1_); ++i) {
-            if (mapping_[i] != other.mapping_[i]) {
-                return false;
-            }
-        }
-        return true;
+        // Vector comparison is fast
+        return mapping_ == other.mapping_;
     }
 
     void set_mapping(const Vertex g1_index, const Vertex g2_index)
@@ -119,22 +84,6 @@ class Mapping
         return true;
     }
 
-    bool remove_mapping_g2(const Vertex g2_index)
-    {
-        assert(g2_index < size_g2_);
-        if (reverse_mapping_[g2_index] == kUnmappedVertex) {
-            return false;
-        }
-
-        const MappedVertex g1_index = reverse_mapping_[g2_index];
-        assert(g1_index >= 0);
-        mapping_[g1_index]         = kUnmappedVertex;
-        reverse_mapping_[g2_index] = kUnmappedVertex;
-        mapped_count_--;
-        assert(mapped_count_ >= 0);
-        return true;
-    }
-
     NODISCARD MappedVertex get_mapping_g1_to_g2(const Vertex g1_index) const
     {
         assert(g1_index < size_g1_);
@@ -166,8 +115,8 @@ class Mapping
     }
 
     private:
-    MappedVertex *mapping_;         /* g1 -> g2. Stores -1 if no mapping. */
-    MappedVertex *reverse_mapping_; /* g2 -> g1. Stores -1 if no mapping. */
+    std::vector<MappedVertex> mapping_;         /* g1 -> g2 */
+    std::vector<MappedVertex> reverse_mapping_; /* g2 -> g1 */
 
     Vertices size_g1_;
     Vertices size_g2_;
@@ -185,19 +134,19 @@ struct State {
     {
     }
 
-    State(const State &other)            = default;
-    State &operator=(const State &other) = default;
+    State(const State &other)                = default;
+    State &operator=(const State &other)     = default;
+    State(State &&other) noexcept            = default;
+    State &operator=(State &&other) noexcept = default;
 
     void set_mapping(const Vertex g1_vertex, const Vertex g2_vertex)
     {
         const MappedVertex old_g2 = mapping.get_mapping_g1_to_g2(g1_vertex);
         if (old_g2 != -1) {
-            // Mark old G2 vertex as unused
             used_mask[old_g2] = 0;
         }
 
         mapping.set_mapping(g1_vertex, g2_vertex);
-        // Mark new G2 vertex as used
         used_mask[g2_vertex] = 1;
     }
 };
