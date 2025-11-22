@@ -174,12 +174,6 @@ static void RunTest_(const CollT &cases, std::tuple<SigT, const char *> algo0, s
             } else {
                 table[row_idx][9].format().color(tabulate::Color::red);
             }
-
-            // Print row immediately for partial results
-            std::cout << "[" << (idx - 1) << "] G1:" << spec.size_g1 << " G2:" << spec.size_g2
-                      << " Dens:" << g1_dens_str.str() << "/" << g2_dens_str.str() << " Costs:" << precise_cost << "/"
-                      << approx_cost << " Status:" << algo0_status << "/" << algo1_status << " Time:" << time0_str.str()
-                      << "ms/" << time1_str.str() << "ms\n";
         } catch (const std::exception &e) {
             // If a test case throws, add a row with error information
             size_t row_idx = table.size();
@@ -190,10 +184,6 @@ static void RunTest_(const CollT &cases, std::tuple<SigT, const char *> algo0, s
             );
             table[row_idx][8].format().color(tabulate::Color::red);
             table[row_idx][9].format().color(tabulate::Color::red);
-
-            // Print row immediately for partial results (error case)
-            std::cout << "[" << (idx - 1) << "] G1:" << spec.size_g1 << " G2:" << spec.size_g2
-                      << " Dens:" << spec.density_g1 << "/" << spec.density_g2 << " ERROR\n";
         }
     }
 
