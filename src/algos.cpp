@@ -332,51 +332,54 @@ std::vector<Mapping> AccurateAStar(const Graph &g1, const Graph &g2, const int k
 static constexpr std::uint32_t R = 5;
 
 struct PrioArr {
-    AStarState &PeekBest() { return table_[0]; }
+    AStarState &PeekBest()
+    {
+        assert(used_ > 0);
+        return table_[0];
+    }
 
     AStarState GetBest()
     {
-        assert(used > 0);
+        assert(used_ > 0);
 
         AStarState rv = table_[0];
 
         for (size_t idx = 0; idx < used_ - 1; ++idx) {
             table_[idx] = table_[idx + 1];
         }
-        used_ = used_ - 1;
+        used_--;
 
         return rv;
     }
 
     void Insert(const AStarState &state)
     {
-        if (used_ < R) {
-            table_[used_++] = state;
+        if (used_ == R && state.f >= table_[used_ - 1].f) {
             return;
         }
 
-        if (state.f >= table_[R - 1].f) {
-            return;
-        }
-
-        AStarState buff{};
-        size_t idx;
-        for (idx = 0; idx < R; ++idx) {
-            if (state.f < table_[idx].f) {
-                buff        = table_[idx];
-                table_[idx] = state;
+        size_t insert_pos = used_;
+        for (size_t i = 0; i < used_; ++i) {
+            if (state.f < table_[i].f) {
+                insert_pos = i;
                 break;
             }
         }
 
-        for (idx = idx + 1; idx < R; ++idx) {
-            std::swap(table_[idx], buff);
+        if (used_ < R) {
+            used_++;
         }
+
+        for (size_t i = used_ - 1; i > insert_pos; --i) {
+            table_[i] = table_[i - 1];
+        }
+
+        table_[insert_pos] = state;
     }
 
     private:
     AStarState table_[R]{};
-    size_t used_{};
+    size_t used_{0};
 };
 
 struct MasterQueue {
