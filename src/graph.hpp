@@ -113,9 +113,13 @@ class Graph
         num_edges_ -= edges;
         assert(num_edges_ >= 0);
 
-        // Note: Removing from adj_list_ is expensive (search and erase) and rarely done in this specific logic
-        // (mainly used in random gen). We leave the neighbor in the list;
-        // IterateNeighbours will just see weight 0 and skip/handle it if strictly required.
+        // CLEANUP LOGIC:
+        // Only remove from adjacency list if NO edges exist in EITHER direction.
+        // We check both because adj_list_ is unified (contains u if u->v OR v->u).
+        if (GetEdges_(u, v) == 0 && GetEdges_(v, u) == 0) {
+            RemoveAdj(u, v);
+            RemoveAdj(v, u);
+        }
     }
 
     NODISCARD FUNC_INLINE Edges GetEdges(const Vertex u, const Vertex v) const { return GetEdges_(u, v); }
@@ -222,6 +226,21 @@ class Graph
                 return;
         }
         list.push_back(to);
+    }
+
+    // Helper to remove 'to' from 'from's adjacency list
+    void RemoveAdj(Vertex from, Vertex to)
+    {
+        std::vector<Vertex> &list = adj_list_[from];
+        for (size_t i = 0; i < list.size(); ++i) {
+            if (list[i] == to) {
+                // Swap with the last element
+                list[i] = list.back();
+                // Remove the last element
+                list.pop_back();
+                return;
+            }
+        }
     }
 
     std::int32_t vertices_{};
