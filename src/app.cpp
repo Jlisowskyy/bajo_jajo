@@ -171,7 +171,7 @@ void Run()
         std::cout << "Generating " << suite.size() << " curated test cases...\n";
 
         for (const auto &test_case : suite) {
-            std::string filename = "tests/gen_" + test_case.name + ".txt";
+            std::string filename = test_case.name + ".txt";
             std::cout << "  - Writing: " << filename << std::endl;
             auto [g1, g2] = test_case.generator();
             Write(filename.c_str(), std::make_tuple(std::ref(g1), std::ref(g2)));
