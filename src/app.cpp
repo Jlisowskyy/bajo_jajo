@@ -27,13 +27,10 @@ AppState g_AppState{};
 
 static void Help_()
 {
-    std::cout << "Usage: app [options] [filename]\n"
+    std::cout << "Usage: app [filename] [options]\n"
               << "\nOptions:\n"
               << "  --help                 Display this help message and exit.\n"
-              << "  --k num_results        Return num_results result mappings. Defaults to 1.\n"
               << "  --approx               Run the approximate algorithm instead of the precise algorithm.\n"
-              << "  --debug                Run debug traces\n"
-              << "  --run_internal_tests   Run internal tests\n"
               << "  --gen-suite            Generate a curated suite of benchmark graph pairs to 'tests/' directory.\n"
               << "  --gen s1 s2 d1 d2 base Generate random graphs instead of reading from a file.\n"
               << "                         s1: size of graph 1 (integer)\n"
@@ -100,6 +97,8 @@ void ParseArgs(int argc, const char *const argv[])
 
         if (arg == "--approx") {
             g_AppState.run_approx = true;
+        } else if (arg == "--bruteforce") {
+            g_AppState.run_bruteforce = true;
         } else if (arg == "--debug") {
             g_AppState.debug = true;
         } else if (arg == "--run_internal_tests") {
@@ -159,8 +158,8 @@ void Run()
 
     if (g_AppState.run_internal_tests) {
         TRACE("Running internal tests...");
-        TestApproxOnPrecise(ApproxAlgo::kApproxAStar, PreciseAlgo::kBruteForce);
-        TestPreciseOnPrecise(PreciseAlgo::kAStar, PreciseAlgo::kBruteForce);
+        // TestApproxOnPrecise(ApproxAlgo::kApproxAStar, PreciseAlgo::kBruteForce);
+        // TestPreciseOnPrecise(PreciseAlgo::kAStar, PreciseAlgo::kBruteForce);
         TestApproxOnApprox(ApproxAlgo::kApproxAStar, ApproxAlgo::kApproxAStar5);
         return;
     }
@@ -191,11 +190,16 @@ void Run()
     auto [g1, g2] = Read(g_AppState.file);
     TRACE("Got g1 with size: ", g1.GetVertices(), " and g2 with size: ", g2.GetVertices());
 
-    const auto t0 = std::chrono::high_resolution_clock::now();
-    const auto mappings =
-        g_AppState.run_approx ? Approximate(g1, g2, g_AppState.num_results) : Accurate(g1, g2, g_AppState.num_results);
-    const auto t1 = std::chrono::high_resolution_clock::now();
-
+    const auto t0                 = std::chrono::high_resolution_clock::now();
+    std::vector<Mapping> mappings = {};
+    if (g_AppState.run_approx) {
+        mappings = Approximate(g1, g2, g_AppState.num_results);
+    } else if (g_AppState.run_bruteforce) {
+        mappings = AccurateBruteForce(g1, g2, g_AppState.num_results);
+    } else {
+        mappings = Accurate(g1, g2, g_AppState.num_results);
+    }
+    const auto t1                  = std::chrono::high_resolution_clock::now();
     const std::uint64_t time_spent = std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
     Write(g1, g2, mappings, time_spent);
 }

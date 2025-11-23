@@ -18,7 +18,7 @@ NODISCARD inline std::vector<Mapping> Accurate(const Graph &g1, const Graph &g2,
 
 NODISCARD inline std::vector<Mapping> Approximate(const Graph &g1, const Graph &g2, const int k)
 {
-    return ApproxAStar(g1, g2, k);
+    return ApproxAStar5(g1, g2, k);
 }
 
 #endif  // ALGOS_HPP

@@ -73,26 +73,22 @@ std::pair<Graph, Graph> Read(const char *file)
 void Write(const Graph &g1, const Graph &g2, const std::vector<Mapping> &mappings, std::uint64_t time_spent_ns)
 {
     std::cout << "Execution Time: " << std::fixed << std::setprecision(4) << time_spent_ns / 1'000'000.0 << " ms\n";
-    std::cout << "Number of solutions found: " << mappings.size() << "\n";
 
     // --- Results ---
     if (mappings.empty()) {
         std::cout << "No valid mapping found.\n";
         return;
     }
-
-    std::cout << "--- Best Mapping Results ---\n";
-    int result_idx = 1;
     for (const auto &mapping : mappings) {
         const int cost = CalculateMissingEdges(g1, g2, mapping);
 
-        std::cout << "\nResult " << result_idx++ << ":\n";
-        std::cout << "  - Cost (Missing Edges): " << cost << "\n";
+        std::cout << "Result " << ":\n";
+        std::cout << "  - Cost (Added Edges): " << cost << "\n";
         std::cout << "  - Mapping (G1 -> G2):\n";
-
         for (Vertex i = 0; i < g1.GetVertices(); ++i) {
             std::cout << "    " << i << " -> " << mapping.get_mapping_g1_to_g2(i) << "\n";
         }
+        std::cout << "  - Extended G2:\n";
     }
     std::cout << "--------------------------\n";
 }
