@@ -11,6 +11,7 @@ bool IsDebug();
 struct AppState {
     const char *file{};
     bool run_approx{};
+    bool run_bruteforce{};
     bool debug{};
     bool generate_graph{};
     bool run_internal_tests{};
