@@ -13,6 +13,7 @@ struct AppState {
     bool run_approx{};
     bool debug{};
     bool generate_graph{};
+    bool generate_suite{};
     bool run_internal_tests{};
     int num_results{1};
     GraphSpec spec{};
