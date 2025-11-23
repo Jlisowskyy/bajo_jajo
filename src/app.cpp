@@ -1,17 +1,19 @@
 #include "app.hpp"
 
-#include <algos.hpp>
+#include "algos.hpp"
+#include "curated_gen.hpp"
+#include "io.hpp"
+#include "random_gen.hpp"
+#include "test_framework.hpp"
+#include "trace.hpp"
+
 #include <chrono>
 #include <iostream>
-#include <random_gen.hpp>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <vector>
-
-#include "io.hpp"
-#include "test_framework.hpp"
-#include "trace.hpp"
 
 // ------------------------------
 // State
@@ -29,6 +31,7 @@ static void Help_()
               << "\nOptions:\n"
               << "  --help                 Display this help message and exit.\n"
               << "  --approx               Run the approximate algorithm instead of the precise algorithm.\n"
+              << "  --gen-suite            Generate a curated suite of benchmark graph pairs to 'tests/' directory.\n"
               << "  --gen s1 s2 d1 d2 base Generate random graphs instead of reading from a file.\n"
               << "                         s1: size of graph 1 (integer)\n"
               << "                         s2: size of graph 2 (integer)\n"
@@ -46,6 +49,7 @@ static void PrintAppState()
     TRACE(
         "\n--- Application State ---\n", "Mode:\n", "  - Debug traces:    ", (g_AppState.debug ? "yes" : "no"), "\n",
         "  - Internal tests:    ", (g_AppState.run_internal_tests ? "yes" : "no"), "\n",
+        "  - Generate Suite:    ", (g_AppState.generate_suite ? "yes" : "no"), "\n",
         "  - Algorithm:       ", (g_AppState.run_approx ? "Approximate " : "Precise "), "\n",
         "  - K:    ", g_AppState.num_results, "\n",
 
@@ -99,6 +103,8 @@ void ParseArgs(int argc, const char *const argv[])
             g_AppState.debug = true;
         } else if (arg == "--run_internal_tests") {
             g_AppState.run_internal_tests = true;
+        } else if (arg == "--gen-suite") {
+            g_AppState.generate_suite = true;
         } else if (arg == "--gen") {
             if (i + 5 >= args.size()) {
                 throw std::runtime_error("--gen requires 5 arguments.");
@@ -131,8 +137,18 @@ void ParseArgs(int argc, const char *const argv[])
         }
     }
 
-    if (!g_AppState.run_internal_tests && g_AppState.file == nullptr) {
-        throw std::runtime_error("A filename is required if --run_internal_tests is not used.");
+    // Logic validation
+    // 1. If internal tests, no file needed.
+    // 2. If gen-suite, no file needed.
+    // 3. If gen random, no file needed.
+    // 4. Otherwise, file is required.
+    const bool is_special_mode =
+        g_AppState.run_internal_tests || g_AppState.generate_graph || g_AppState.generate_suite;
+
+    if (!is_special_mode && g_AppState.file == nullptr) {
+        throw std::runtime_error(
+            "A filename is required if not running in a special mode (--gen-suite, --run_internal_tests, --gen)."
+        );
     }
 }
 
@@ -145,6 +161,21 @@ void Run()
         TestApproxOnPrecise(ApproxAlgo::kApproxAStar, PreciseAlgo::kBruteForce);
         TestPreciseOnPrecise(PreciseAlgo::kAStar, PreciseAlgo::kBruteForce);
         TestApproxOnApprox(ApproxAlgo::kApproxAStar, ApproxAlgo::kApproxAStar5);
+        return;
+    }
+
+    if (g_AppState.generate_suite) {
+        TRACE("Generating curated test suite...");
+        const auto suite = GenerateAllCurated();
+        std::cout << "Generating " << suite.size() << " curated test cases...\n";
+
+        for (const auto &test_case : suite) {
+            std::string filename = test_case.name + ".txt";
+            std::cout << "  - Writing: " << filename << std::endl;
+            auto [g1, g2] = test_case.generator();
+            Write(filename.c_str(), std::make_tuple(std::ref(g1), std::ref(g2)));
+        }
+        std::cout << "Done.\n";
         return;
     }
 
