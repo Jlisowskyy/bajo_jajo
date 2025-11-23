@@ -194,6 +194,59 @@ static constexpr std::array ApproxSpec = {
     GraphSpec{90, 110,   40,  70, false},
 };
 
+static constexpr std::array ApproxSpec2 = {
+    // --- Size 10 ---
+    GraphSpec{ 10,  12,  0.4,  0.5, true}, // Casual
+    GraphSpec{ 10,  12,  0.9,  1.0, true}, // Dense
+
+    // --- Size 19 (Tier 1 Boundary) ---
+    GraphSpec{ 19,  25,  0.3,  0.4, true}, // Casual
+    GraphSpec{ 19,  25, 0.85,  0.9, true}, // Dense
+
+    // --- Size 20 (Tier 2 Start) ---
+    GraphSpec{ 20,  30,  0.3,  0.4, true}, // Casual
+    GraphSpec{ 20,  30,  0.8,  0.9, true}, // Dense
+
+    // --- Size 35 ---
+    GraphSpec{ 35,  45,  0.2, 0.25, true}, // Casual
+    GraphSpec{ 35,  45,  0.7,  0.8, true}, // Dense
+
+    // --- Size 40 ---
+    GraphSpec{ 40,  50,  0.2, 0.25, true}, // Casual
+    GraphSpec{ 40,  50,  0.7,  0.8, true}, // Dense
+
+    // --- Size 49 (Tier 2 Boundary) ---
+    GraphSpec{ 49,  60, 0.15,  0.2, true}, // Casual
+    GraphSpec{ 49,  60,  0.6,  0.7, true}, // Dense
+
+    // --- Size 50 (Tier 3 Start) ---
+    GraphSpec{ 50,  70, 0.15,  0.2, true}, // Casual
+    GraphSpec{ 50,  70,  0.6,  0.7, true}, // Dense
+
+    // --- Size 60 ---
+    GraphSpec{ 60,  80,  0.1, 0.15, true}, // Casual
+    GraphSpec{ 60,  80,  0.5,  0.6, true}, // Dense
+
+    // --- Size 75 ---
+    GraphSpec{ 75,  90,  0.1, 0.15, true}, // Casual
+    GraphSpec{ 75,  90,  0.5,  0.6, true}, // Dense
+
+    // --- Size 85 ---
+    GraphSpec{ 85, 100, 0.08,  0.1, true}, // Casual
+    GraphSpec{ 85, 100, 0.45, 0.55, true}, // Dense
+
+    // --- Size 99 (Tier 3 Boundary) ---
+    GraphSpec{ 99, 110, 0.08,  0.1, true}, // Casual
+    GraphSpec{ 99, 110,  0.4,  0.5, true}, // Dense
+
+    // --- Size 100 (Tier 4 Start) ---
+    GraphSpec{100, 120, 0.05, 0.08, true}, // Casual
+    GraphSpec{100, 120,  0.4,  0.5, true}, // Dense
+
+    // --- Size 110 (Max) ---
+    GraphSpec{110, 130, 0.05, 0.08, true}, // Casual
+    GraphSpec{110, 130, 0.35, 0.45, true}, // Dense
+};
 // ------------------------------
 // ApproxOnPrecise
 // ------------------------------
@@ -224,6 +277,6 @@ void TestPreciseOnPrecise(PreciseAlgo precise_algo, PreciseAlgo precise_algo1)
 void TestApproxOnApprox(ApproxAlgo approx_algo, ApproxAlgo approx_algo1)
 {
     RunTest_(
-        ApproxSpec, kApproxAlgos[static_cast<size_t>(approx_algo)], kApproxAlgos[static_cast<size_t>(approx_algo1)]
+        ApproxSpec2, kApproxAlgos[static_cast<size_t>(approx_algo)], kApproxAlgos[static_cast<size_t>(approx_algo1)]
     );
 }
