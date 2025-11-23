@@ -44,3 +44,6 @@ build/
 reports
 compile_commands.json
 original_compile_commands.json
+
+.cache
+out
