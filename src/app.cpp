@@ -143,10 +143,9 @@ void Run()
 
     if (g_AppState.run_internal_tests) {
         TRACE("Running internal tests...");
-        // TestPreciseOnPrecise(PreciseAlgo::kBruteForce, PreciseAlgo::kBruteForce);
-        // TestPreciseOnPrecise(PreciseAlgo::kBruteForce, PreciseAlgo::kAStar);
-        TestApproxOnApprox(ApproxAlgo::kApproxAStar, ApproxAlgo::kApproxAStar5);
         TestApproxOnPrecise(ApproxAlgo::kApproxAStar, PreciseAlgo::kBruteForce);
+        TestPreciseOnPrecise(PreciseAlgo::kAStar, PreciseAlgo::kBruteForce);
+        TestApproxOnApprox(ApproxAlgo::kApproxAStar, ApproxAlgo::kApproxAStar5);
         return;
     }
 
