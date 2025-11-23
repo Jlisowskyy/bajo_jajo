@@ -1,5 +1,7 @@
 #include <io.hpp>
 
+#include "algos.hpp"
+
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -7,29 +9,6 @@
 #include <string>
 #include <tuple>
 #include <vector>
-
-// ------------------------------
-// statics
-// ------------------------------
-
-static int CalculateMissingEdges(const Graph &g1, const Graph &g2, const Mapping &mapping)
-{
-    int missing_edges = 0;
-
-    g1.IterateEdges([&](const Edges edges_in_g1, const Vertex u, const Vertex v) {
-        const MappedVertex mapped_u = mapping.get_mapping_g1_to_g2(u);
-        const MappedVertex mapped_v = mapping.get_mapping_g1_to_g2(v);
-
-        if (mapped_u != -1 && mapped_v != -1) {
-            const Edges edges_in_g2 = g2.GetEdges(mapped_u, mapped_v);
-            if (edges_in_g1 > edges_in_g2) {
-                missing_edges += static_cast<int>(edges_in_g1 - edges_in_g2);
-            }
-        }
-    });
-
-    return missing_edges;
-}
 
 // ------------------------------
 // implementations
@@ -80,7 +59,12 @@ void Write(const Graph &g1, const Graph &g2, const std::vector<Mapping> &mapping
         return;
     }
     for (const auto &mapping : mappings) {
-        const int cost = CalculateMissingEdges(g1, g2, mapping);
+        const std::vector<EdgeExtension> extensions = GetMinimalEdgeExtension(g1, g2, mapping);
+
+        int cost = 0;
+        for (const auto &ext : extensions) {
+            cost += static_cast<int>(ext.weight_needed - ext.weight_found);
+        }
 
         std::cout << "Result " << ":\n";
         std::cout << "  - Cost (Added Edges): " << cost << "\n";
@@ -88,7 +72,15 @@ void Write(const Graph &g1, const Graph &g2, const std::vector<Mapping> &mapping
         for (Vertex i = 0; i < g1.GetVertices(); ++i) {
             std::cout << "    " << i << " -> " << mapping.get_mapping_g1_to_g2(i) << "\n";
         }
-        std::cout << "  - Extended G2:\n";
+        if (cost > 0) {
+            std::cout << "\n  --- Minimal Edge Extension ---\n";
+            for (const auto &ext : extensions) {
+                // Format: G1 Edge (2, 3) [Weight 10] -> Maps to G2 (5, 8) [Weight 2] : Add Weight +8
+                std::cout << "    G1 Edge (" << ext.u << ", " << ext.v << ") [Weight " << ext.weight_needed
+                          << "] -> Maps to G2 (" << ext.mapped_u << ", " << ext.mapped_v << ") [Weight "
+                          << ext.weight_found << "] : Add Weight +" << (ext.weight_needed - ext.weight_found) << "\n";
+            }
+        }
     }
     std::cout << "--------------------------\n";
 }

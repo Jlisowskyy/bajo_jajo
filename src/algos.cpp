@@ -7,6 +7,44 @@
 #include <unordered_set>
 #include <vector>
 
+// ------------------------------
+// Edge Extension Reporting
+// ------------------------------
+
+std::vector<EdgeExtension> GetMinimalEdgeExtension(const Graph &g1, const Graph &g2, const Mapping &mapping)
+{
+    std::vector<EdgeExtension> extensions;
+
+    // Iterate G1 edges to find what is missing in G2
+    g1.IterateEdges([&](const Edges edges_g1, const Vertex u, const Vertex v) {
+        const MappedVertex mapped_u = mapping.get_mapping_g1_to_g2(u);
+        const MappedVertex mapped_v = mapping.get_mapping_g1_to_g2(v);
+
+        // If vertices aren't mapped, we skip them here as that's a node mapping issue,
+        // but assuming full mapping for the solution provided:
+        if (mapped_u != kUnmappedVertex && mapped_v != kUnmappedVertex) {
+            const Edges edges_g2 = g2.GetEdges(static_cast<Vertex>(mapped_u), static_cast<Vertex>(mapped_v));
+
+            if (edges_g1 > edges_g2) {
+                extensions.push_back({
+                    u,
+                    v,
+                    static_cast<Vertex>(mapped_u),
+                    static_cast<Vertex>(mapped_v),
+                    edges_g1,
+                    edges_g2,
+                });
+            }
+        }
+    });
+
+    return extensions;
+}
+
+// ------------------------------
+// Helper Functions
+// ------------------------------
+
 static bool is_mapping_present(const Mapping &mapping, const std::multimap<int, Mapping> &mappings)
 {
     for (const auto &pair : mappings) {
