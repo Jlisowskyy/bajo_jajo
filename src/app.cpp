@@ -27,19 +27,15 @@ AppState g_AppState{};
 
 static void Help_()
 {
-    std::cout << "Usage: app [filename] [options]\n"
+    std::cout << "Usage: app <input> <output> [options]\n"
               << "\nOptions:\n"
               << "  --help                 Display this help message and exit.\n"
               << "  --approx               Run the approximate algorithm instead of the precise algorithm.\n"
+              << "  --bruteforce           Run the bruteforce accurate algorithm.\n"
               << "  --gen-suite            Generate a curated suite of benchmark graph pairs to 'tests/' directory.\n"
-              << "  --gen s1 s2 d1 d2 base Generate random graphs instead of reading from a file.\n"
-              << "                         s1: size of graph 1 (integer)\n"
-              << "                         s2: size of graph 2 (integer)\n"
-              << "                         d1: density of graph 1 (float)\n"
-              << "                         d2: density of graph 2 (float)\n"
-              << "                         base: create g1 based on g2 (true/false)\n"
               << "\nArguments:\n"
-              << "  filename               Path to the input file describing the graphs or output.\n"
+              << "  input                  Path to the input file with the graphs.\n"
+              << "  output                 Path to the output file where the extension of the G2 graph will be saved.\n"
               << std::endl;
 }
 
@@ -130,10 +126,12 @@ void ParseArgs(int argc, const char *const argv[])
         } else if (arg.rfind("--", 0) == 0) {
             throw std::runtime_error("Unknown option " + std::string(arg));
         } else {
-            if (g_AppState.file != nullptr) {
-                throw std::runtime_error("Multiple filenames provided.");
+            if (g_AppState.file != nullptr || g_AppState.output != nullptr) {
+                throw std::runtime_error("Only input and output filepaths should be provided.");
             }
-            g_AppState.file = argv[i + 1];
+            g_AppState.file   = argv[i + 1];
+            g_AppState.output = argv[i + 2];
+            ++i;
         }
     }
 
@@ -148,6 +146,12 @@ void ParseArgs(int argc, const char *const argv[])
     if (!is_special_mode && g_AppState.file == nullptr) {
         throw std::runtime_error(
             "A filename is required if not running in a special mode (--gen-suite, --run_internal_tests, --gen)."
+        );
+    }
+
+    if (!is_special_mode && g_AppState.output == nullptr) {
+        throw std::runtime_error(
+            "Output filename is required if not running in a special mode (--gen-suite, --run_internal_tests, --gen)."
         );
     }
 }
@@ -202,4 +206,6 @@ void Run()
     const auto t1                  = std::chrono::high_resolution_clock::now();
     const std::uint64_t time_spent = std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
     Write(g1, g2, mappings, time_spent);
+    const Graph g2extended = GetMinimalExtension(g1, g2, mappings[0]);
+    WriteResult(g_AppState.output, g2extended);
 }

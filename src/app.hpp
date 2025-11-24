@@ -10,6 +10,7 @@ bool IsDebug();
 
 struct AppState {
     const char *file{};
+    const char *output{};
     bool run_approx{};
     bool run_bruteforce{};
     bool debug{};

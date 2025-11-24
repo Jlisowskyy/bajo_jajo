@@ -2,6 +2,7 @@
 
 #include "algos.hpp"
 
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -108,6 +109,29 @@ void Write(const char *file, const std::tuple<Graph, Graph> &graphs)
     for (Vertex i = 0; i < size2; ++i) {
         for (Vertex j = 0; j < size2; ++j) {
             file_stream << g2.GetEdges(i, j) << (j == size2 - 1 ? "" : " ");
+        }
+        file_stream << "\n";
+    }
+}
+
+void WriteResult(const char *file, const Graph &g)
+{
+    // Create parent directories if they don't exist
+    std::filesystem::path file_path(file);
+    if (file_path.has_parent_path()) {
+        std::filesystem::create_directories(file_path.parent_path());
+    }
+
+    std::ofstream file_stream(file);
+    if (!file_stream.is_open()) {
+        throw std::runtime_error("Error: Could not open file for writing: " + std::string(file));
+    }
+
+    const auto size = g.GetVertices();
+    file_stream << size << "\n";
+    for (Vertex i = 0; i < size; ++i) {
+        for (Vertex j = 0; j < size; ++j) {
+            file_stream << g.GetEdges(i, j) << (j == size - 1 ? "" : " ");
         }
         file_stream << "\n";
     }
