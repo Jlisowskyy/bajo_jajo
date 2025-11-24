@@ -41,6 +41,19 @@ std::vector<EdgeExtension> GetMinimalEdgeExtension(const Graph &g1, const Graph 
     return extensions;
 }
 
+Graph GetMinimalExtension(const Graph &g1, const Graph &g2, const Mapping &mapping)
+{
+    const std::vector<EdgeExtension> extensions = GetMinimalEdgeExtension(g1, g2, mapping);
+    Graph extendedG2(g2);
+    for (auto edge : extensions) {
+        const Edges edgesToAdd = edge.weight_needed - edge.weight_found;
+        if (edgesToAdd > 0) {
+            extendedG2.AddEdges(edge.mapped_u, edge.mapped_v, edgesToAdd);
+        }
+    }
+    return extendedG2;
+}
+
 // ------------------------------
 // Helper Functions
 // ------------------------------

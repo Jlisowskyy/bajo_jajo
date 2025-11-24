@@ -18,6 +18,7 @@ struct EdgeExtension {
 
 // Computes the specific edges required to make the mapping valid
 NODISCARD std::vector<EdgeExtension> GetMinimalEdgeExtension(const Graph &g1, const Graph &g2, const Mapping &mapping);
+NODISCARD Graph GetMinimalExtension(const Graph &g1, const Graph &g2, const Mapping &mapping);
 
 NODISCARD std::vector<Mapping> AccurateBruteForce(const Graph &g1, const Graph &g2, int k);
 NODISCARD std::vector<Mapping> AccurateAStar(const Graph &g1, const Graph &g2, int k);
