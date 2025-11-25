@@ -13,6 +13,6 @@ struct GraphSpec {
     bool create_g1_based_on_g2;
 };
 
-std::tuple<Graph, Graph> GenerateExample(GraphSpec spec);
+std::pair<Graph, Graph> GenerateExample(GraphSpec spec);
 
 #endif  // RANDOM_GEN_HPP

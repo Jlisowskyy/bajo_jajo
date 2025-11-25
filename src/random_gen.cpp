@@ -7,7 +7,7 @@
 static std::mt19937 g_Gen(kSeed);
 
 // in case of create_g1_based_on_g2 density_g1 should be in range [0.0, 1.0]
-std::tuple<Graph, Graph> GenerateExample(const GraphSpec spec)
+std::pair<Graph, Graph> GenerateExample(const GraphSpec spec)
 {
     assert(spec.size_g1 != 0);
     assert(spec.size_g2 != 0);
@@ -83,5 +83,5 @@ std::tuple<Graph, Graph> GenerateExample(const GraphSpec spec)
         });
     }
 
-    return std::make_tuple(std::move(g1), std::move(g2));
+    return std::make_pair(std::move(g1), std::move(g2));
 }

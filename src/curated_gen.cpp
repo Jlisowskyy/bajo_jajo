@@ -1,4 +1,5 @@
 #include "curated_gen.hpp"
+#include "random_gen.hpp"
 
 #include <cmath>
 #include <random>
@@ -63,22 +64,23 @@ static Graph BuildLadder(int len)
     return g;
 }
 
-static Graph BuildPetersen()
+static Graph BuildPetersen(const int n)
 {
-    Graph g(10);
-    for (int i = 0; i < 5; ++i) {
-        g.AddEdges(i, (i + 1) % 5);
-        g.AddEdges((i + 1) % 5, i);
+    Graph g(n);
+    const int h = n / 2;
+    for (int i = 0; i < h; ++i) {
+        g.AddEdges(i, (i + 1) % h);
+        g.AddEdges((i + 1) % h, i);
     }
-    for (int i = 0; i < 5; ++i) {
-        Vertex u = 5 + i;
-        Vertex v = 5 + ((i + 2) % 5);
+    for (int i = 0; i < h; ++i) {
+        Vertex u = h + i;
+        Vertex v = h + ((i + 2) % h);
         g.AddEdges(u, v);
         g.AddEdges(v, u);
     }
-    for (int i = 0; i < 5; ++i) {
-        g.AddEdges(i, i + 5);
-        g.AddEdges(i + 5, i);
+    for (int i = 0; i < h; ++i) {
+        g.AddEdges(i, i + h);
+        g.AddEdges(i + h, i);
     }
     return g;
 }
@@ -97,23 +99,6 @@ static Graph BuildBinaryTree(int depth)
         if (right < nodes) {
             g.AddEdges(i, right);
             g.AddEdges(right, i);
-        }
-    }
-    return g;
-}
-
-static Graph BuildRandom(int n, double density, int seed)
-{
-    Graph g(static_cast<Vertices>(n));
-    std::mt19937 gen(seed);
-    std::uniform_real_distribution<> dis(0.0, 1.0);
-
-    for (int i = 0; i < n; ++i) {
-        for (int j = i + 1; j < n; ++j) {
-            if (dis(gen) < density) {
-                g.AddEdges(i, j);
-                g.AddEdges(j, i);
-            }
         }
     }
     return g;
@@ -169,20 +154,20 @@ std::vector<TestCase> GenerateAllCurated()
     // 1. EXACT ALGORITHM TESTS (Simple Graphs, N ~ 10-12)
     // =========================================================
 
-    cases.push_back(TestCase{"01_exact_petersen", []() {
-                                 return std::make_pair(BuildPetersen(), BuildPetersen());
+    cases.push_back(TestCase{"01_small_graphs", []() {
+                                 return std::make_pair(BuildPetersen(8), BuildPetersen(10));
                              }});
 
-    cases.push_back(TestCase{"02_exact_clique_11", []() {
-                                 return std::make_pair(BuildClique(11), BuildClique(11));
+    cases.push_back(TestCase{"02_exact_clique_10", []() {
+                                 return std::make_pair(BuildClique(7), BuildClique(10));
                              }});
 
     cases.push_back(TestCase{"03_exact_grid_3x4", []() {
-                                 return std::make_pair(BuildGrid(3, 4), BuildGrid(3, 4));
+                                 return std::make_pair(BuildGrid(2, 4), BuildGrid(3, 4));
                              }});
 
-    cases.push_back(TestCase{"04_exact_random_dense_12", []() {
-                                 return std::make_pair(BuildRandom(12, 0.6, 42), BuildRandom(12, 0.6, 42));
+    cases.push_back(TestCase{"04_exact_random_dense_10", []() {
+                                 return GenerateExample({10, 10, 0.6, 1.3, false});
                              }});
 
     // =========================================================
@@ -198,35 +183,15 @@ std::vector<TestCase> GenerateAllCurated()
                              }});
 
     cases.push_back(TestCase{"07_approx_binary_tree", []() {
-                                 return std::make_pair(BuildBinaryTree(5), BuildBinaryTree(6));
+                                 return std::make_pair(BuildBinaryTree(5), BuildBinaryTree(7));
                              }});
 
     cases.push_back(TestCase{"08_approx_random_dense_60", []() {
-                                 Graph g2 = BuildRandom(60, 0.5, 12345);
-                                 Graph g1(30);
-                                 for (int i = 0; i < 30; ++i) {
-                                     for (int j = i + 1; j < 30; ++j) {
-                                         if (g2.GetEdges(i, j) > 0) {
-                                             g1.AddEdges(i, j);
-                                             g1.AddEdges(j, i);
-                                         }
-                                     }
-                                 }
-                                 return std::make_pair(std::move(g1), std::move(g2));
+                                 return GenerateExample({30, 60, 1.4, 3.5, false});
                              }});
 
     cases.push_back(TestCase{"09_approx_sparse_100", []() {
-                                 Graph g2 = BuildRandom(100, 0.08, 999);
-                                 Graph g1(40);
-                                 for (int i = 0; i < 40; ++i) {
-                                     for (int j = i + 1; j < 40; ++j) {
-                                         if (g2.GetEdges(i, j) > 0) {
-                                             g1.AddEdges(i, j);
-                                             g1.AddEdges(j, i);
-                                         }
-                                     }
-                                 }
-                                 return std::make_pair(std::move(g1), std::move(g2));
+                                 return GenerateExample({40, 100, 0.3, 2.137, true});
                              }});
 
     cases.push_back(TestCase{"10_approx_massive_star", []() {
@@ -251,7 +216,7 @@ std::vector<TestCase> GenerateAllCurated()
     // If it relies only on topology, it will explore too many states.
     cases.push_back(TestCase{"11_multi_arithmetic_clique_10", []() {
                                  // Modulus 20 creates weights 1..20.
-                                 return std::make_pair(BuildArithmeticClique(10, 20), BuildArithmeticClique(10, 20));
+                                 return std::make_pair(BuildArithmeticClique(8, 20), BuildArithmeticClique(10, 21));
                              }});
 
     // 12. The "Heavy" Bipartite (Approx/Exact)
@@ -260,7 +225,7 @@ std::vector<TestCase> GenerateAllCurated()
     // This tests if the algo correctly handles massive edge counts and doesn't overflow or ignore them.
     cases.push_back(TestCase{"12_multi_heavy_bipartite_20", []() {
                                  // Weight 1000 for "heavy" edges
-                                 return std::make_pair(BuildHeavyBipartite(10, 1000), BuildHeavyBipartite(10, 1000));
+                                 return std::make_pair(BuildHeavyBipartite(10, 1000), BuildHeavyBipartite(13, 1000));
                              }});
 
     // 13. The "Deep Fail" (Exact)
@@ -323,8 +288,33 @@ std::vector<TestCase> GenerateAllCurated()
                                      }
                                      return g;
                                  };
-                                 return std::make_pair(BuildModRing(12), BuildModRing(12));
+                                 return std::make_pair(BuildModRing(9), BuildModRing(10));
                              }});
+
+    // =========================================================
+    // 4. RANDOM ALGORITHM TESTS (From ApproxSpec)
+    // =========================================================
+
+    auto add_spec_case = [&](const std::string &name, const GraphSpec &spec) {
+        cases.push_back(TestCase{name, [spec]() {
+                                     return GenerateExample(spec);
+                                 }});
+    };
+
+    // Subgraph Isomorphism Cases (create_g1_based_on_g2 = true)
+    // G1 is cut from G2, ensuring a perfect mapping exists (cost 0 or low) if edges aren't removed.
+
+    add_spec_case("16_rnd_sub_50_70_dense", GraphSpec{50, 70, 1.0, 1.5, true});
+    add_spec_case("17_rnd_sub_60_80_dense", GraphSpec{60, 80, 0.9, 1.8, true});
+    add_spec_case("18_rnd_sub_70_90_med", GraphSpec{70, 90, 0.75, 1.2, true});
+    add_spec_case("19_rnd_sub_80_100_sparse", GraphSpec{80, 100, 0.5, 2.0, true});
+    add_spec_case("20_rnd_sub_90_110_sparse", GraphSpec{90, 110, 0.3, 1.0, true});
+
+    add_spec_case("21_rnd_indep_50_70_heavy", GraphSpec{50, 70, 12, 10, false});
+    add_spec_case("22_rnd_indep_60_80_heavy", GraphSpec{60, 80, 5, 7, false});
+    add_spec_case("23_rnd_indep_70_90_med", GraphSpec{70, 90, 6, 5, false});
+    add_spec_case("24_rnd_indep_80_100_heavy", GraphSpec{80, 100, 9.42, 6.72, false});
+    add_spec_case("25_rnd_indep_90_110_mixed", GraphSpec{90, 110, 5.31, 8.54, false});
 
     return cases;
 }

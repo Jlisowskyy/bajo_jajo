@@ -179,19 +179,19 @@ static constexpr std::array PreciseSpec = {
 };
 
 static constexpr std::array ApproxSpec = {
-    GraphSpec{50,  70,  1.0, 1.5,  true},
-    GraphSpec{60,  80,  0.9, 1.8,  true},
-    GraphSpec{70,  90, 0.75, 1.2,  true},
+    GraphSpec{50,  70,  1.0,  1.5,  true},
+    GraphSpec{60,  80,  0.9,  1.8,  true},
+    GraphSpec{70,  90, 0.75,  1.2,  true},
 
-    GraphSpec{80, 100,  0.5, 2.0,  true},
-    GraphSpec{90, 110,  0.3, 1.0,  true},
+    GraphSpec{80, 100,  0.5,  2.0,  true},
+    GraphSpec{90, 110,  0.3,  1.0,  true},
 
-    GraphSpec{50,  70,  134,  40, false},
-    GraphSpec{60,  80,   11,  32, false},
-    GraphSpec{70,  90,   24,  24, false},
+    GraphSpec{50,  70,   12,   10, false},
+    GraphSpec{60,  80,    5,    7, false},
+    GraphSpec{70,  90,    6,    5, false},
 
-    GraphSpec{80, 100,   90,  35, false},
-    GraphSpec{90, 110,   40,  70, false},
+    GraphSpec{80, 100, 9.42, 6.72, false},
+    GraphSpec{90, 110, 5.31, 8.54, false},
 };
 
 static constexpr std::array ApproxSpec2 = {
@@ -277,6 +277,6 @@ void TestPreciseOnPrecise(PreciseAlgo precise_algo, PreciseAlgo precise_algo1)
 void TestApproxOnApprox(ApproxAlgo approx_algo, ApproxAlgo approx_algo1)
 {
     RunTest_(
-        ApproxSpec2, kApproxAlgos[static_cast<size_t>(approx_algo)], kApproxAlgos[static_cast<size_t>(approx_algo1)]
+        ApproxSpec, kApproxAlgos[static_cast<size_t>(approx_algo)], kApproxAlgos[static_cast<size_t>(approx_algo1)]
     );
 }
