@@ -154,19 +154,19 @@ std::vector<TestCase> GenerateAllCurated()
     // 1. EXACT ALGORITHM TESTS (Simple Graphs, N ~ 10-12)
     // =========================================================
 
-    cases.push_back(TestCase{"01_small_graphs", []() {
+    cases.push_back(TestCase{"01_accurate_prepared_8_10", []() {
                                  return std::make_pair(BuildPetersen(8), BuildPetersen(10));
                              }});
 
-    cases.push_back(TestCase{"02_exact_clique_10", []() {
+    cases.push_back(TestCase{"02_accurate_prepared_7_10", []() {
                                  return std::make_pair(BuildClique(7), BuildClique(10));
                              }});
 
-    cases.push_back(TestCase{"03_exact_grid_3x4", []() {
+    cases.push_back(TestCase{"03_accurate_prepared_8_12", []() {
                                  return std::make_pair(BuildGrid(2, 4), BuildGrid(3, 4));
                              }});
 
-    cases.push_back(TestCase{"04_exact_random_dense_10", []() {
+    cases.push_back(TestCase{"04_accurate_random_10_10", []() {
                                  return GenerateExample({10, 10, 0.6, 1.3, false});
                              }});
 
@@ -174,27 +174,27 @@ std::vector<TestCase> GenerateAllCurated()
     // 2. APPROX ALGORITHM TESTS (Large Graphs, N ~ 50-100)
     // =========================================================
 
-    cases.push_back(TestCase{"05_approx_grid_10x10", []() {
+    cases.push_back(TestCase{"05_approx_prepared_25_100", []() {
                                  return std::make_pair(BuildGrid(5, 5), BuildGrid(10, 10));
                              }});
 
-    cases.push_back(TestCase{"06_approx_ladder_80", []() {
+    cases.push_back(TestCase{"06_approx_prepared_40_80", []() {
                                  return std::make_pair(BuildLadder(20), BuildLadder(40));
                              }});
 
-    cases.push_back(TestCase{"07_approx_binary_tree", []() {
+    cases.push_back(TestCase{"07_approx_prepared_31_127", []() {
                                  return std::make_pair(BuildBinaryTree(5), BuildBinaryTree(7));
                              }});
 
-    cases.push_back(TestCase{"08_approx_random_dense_60", []() {
+    cases.push_back(TestCase{"08_approx_random_30_60", []() {
                                  return GenerateExample({30, 60, 1.4, 3.5, false});
                              }});
 
-    cases.push_back(TestCase{"09_approx_sparse_100", []() {
+    cases.push_back(TestCase{"09_approx_random_40_100", []() {
                                  return GenerateExample({40, 100, 0.3, 2.137, true});
                              }});
 
-    cases.push_back(TestCase{"10_approx_massive_star", []() {
+    cases.push_back(TestCase{"10_approx_prepared_50_100", []() {
                                  auto BuildMassiveStar = [](int n) {
                                      Graph g(static_cast<Vertices>(n));
                                      for (int i = 1; i < n; ++i) {
@@ -212,29 +212,21 @@ std::vector<TestCase> GenerateAllCurated()
 
     // 11. The "Arithmetic" Clique (Exact)
     // N=10. K10 is highly symmetric (10! perms), but edge weights are unique/chaotic.
-    // Forces the algo to find the ONLY valid mapping based on edge weights.
-    // If it relies only on topology, it will explore too many states.
-    cases.push_back(TestCase{"11_multi_arithmetic_clique_10", []() {
+    cases.push_back(TestCase{"11_accurate_prepared_8_10", []() {
                                  // Modulus 20 creates weights 1..20.
                                  return std::make_pair(BuildArithmeticClique(8, 20), BuildArithmeticClique(10, 21));
                              }});
 
     // 12. The "Heavy" Bipartite (Approx/Exact)
     // N=20 (10+10). K10,10.
-    // Half the rows have edge weights of 1000, half have 1.
-    // This tests if the algo correctly handles massive edge counts and doesn't overflow or ignore them.
-    cases.push_back(TestCase{"12_multi_heavy_bipartite_20", []() {
+    cases.push_back(TestCase{"12_accurate_prepared_20_26", []() {
                                  // Weight 1000 for "heavy" edges
                                  return std::make_pair(BuildHeavyBipartite(10, 1000), BuildHeavyBipartite(13, 1000));
                              }});
 
     // 13. The "Deep Fail" (Exact)
     // G1: K8 where ONE edge has weight 50. All others 10.
-    // G2: K8 where ALL edges have weight 10.
-    // Topologically identical.
-    // The algo must dive deep to realize the heavy edge in G1 cannot be satisfied by G2.
-    // This punishes lookahead that only checks "connectivity" and not "capacity".
-    cases.push_back(TestCase{"13_multi_deep_fail_K8", []() {
+    cases.push_back(TestCase{"13_accurate_prepared_8_8", []() {
                                  Graph g1 = BuildClique(8);
                                  // BuildClique makes edges=1. Let's pump them.
                                  // Set all to 10.
@@ -256,9 +248,7 @@ std::vector<TestCase> GenerateAllCurated()
     // 14. The "Sparse vs Dense" Multigraph (Approx)
     // G1 has few edges but HIGH weights.
     // G2 has many edges but LOW weights.
-    // Total "edge volume" might be similar, but structure is different.
-    // This tests if the heuristic gets confused by "strength" vs "connectivity".
-    cases.push_back(TestCase{"14_multi_strength_mismatch", []() {
+    cases.push_back(TestCase{"14_approx_prepared_40_100", []() {
                                  // G1: Ladder 20 (40 nodes), Rails weight 100.
                                  Graph g1 = BuildLadder(20);
                                  g1.IterateEdges([&](Edges, Vertex u, Vertex v) {
@@ -268,16 +258,11 @@ std::vector<TestCase> GenerateAllCurated()
                                  // G2: Grid 10x10 (100 nodes), Standard weights (1).
                                  Graph g2 = BuildGrid(10, 10);
 
-                                 // This should fail quickly if heuristics work, or take forever if they chase node
-                                 // degree.
                                  return std::make_pair(std::move(g1), std::move(g2));
                              }});
 
     // 15. The "Modulo" Ring (Exact)
-    // Ring of 12 nodes.
-    // Edge (i, i+1) has weight 3^i % 100.
-    // Strictly requires matching the sequence.
-    cases.push_back(TestCase{"15_multi_modulo_ring_12", []() {
+    cases.push_back(TestCase{"15_accurate_prepared_9_10", []() {
                                  auto BuildModRing = [](int n) {
                                      Graph g(static_cast<Vertices>(n));
                                      for (int i = 0; i < n; ++i) {
@@ -302,19 +287,18 @@ std::vector<TestCase> GenerateAllCurated()
     };
 
     // Subgraph Isomorphism Cases (create_g1_based_on_g2 = true)
-    // G1 is cut from G2, ensuring a perfect mapping exists (cost 0 or low) if edges aren't removed.
 
-    add_spec_case("16_rnd_sub_50_70_dense", GraphSpec{50, 70, 1.0, 1.5, true});
-    add_spec_case("17_rnd_sub_60_80_dense", GraphSpec{60, 80, 0.9, 1.8, true});
-    add_spec_case("18_rnd_sub_70_90_med", GraphSpec{70, 90, 0.75, 1.2, true});
-    add_spec_case("19_rnd_sub_80_100_sparse", GraphSpec{80, 100, 0.5, 2.0, true});
-    add_spec_case("20_rnd_sub_90_110_sparse", GraphSpec{90, 110, 0.3, 1.0, true});
+    add_spec_case("16_approx_random_50_70", GraphSpec{50, 70, 1.0, 1.5, true});
+    add_spec_case("17_approx_random_60_80", GraphSpec{60, 80, 0.9, 1.8, true});
+    add_spec_case("18_approx_random_70_90", GraphSpec{70, 90, 0.75, 1.2, true});
+    add_spec_case("19_approx_random_80_100", GraphSpec{80, 100, 0.5, 2.0, true});
+    add_spec_case("20_approx_random_90_110", GraphSpec{90, 110, 0.3, 1.0, true});
 
-    add_spec_case("21_rnd_indep_50_70_heavy", GraphSpec{50, 70, 12, 10, false});
-    add_spec_case("22_rnd_indep_60_80_heavy", GraphSpec{60, 80, 5, 7, false});
-    add_spec_case("23_rnd_indep_70_90_med", GraphSpec{70, 90, 6, 5, false});
-    add_spec_case("24_rnd_indep_80_100_heavy", GraphSpec{80, 100, 9.42, 6.72, false});
-    add_spec_case("25_rnd_indep_90_110_mixed", GraphSpec{90, 110, 5.31, 8.54, false});
+    add_spec_case("21_approx_random_50_70", GraphSpec{50, 70, 12, 10, false});
+    add_spec_case("22_approx_random_60_80", GraphSpec{60, 80, 5, 7, false});
+    add_spec_case("23_approx_random_70_90", GraphSpec{70, 90, 6, 5, false});
+    add_spec_case("24_approx_random_80_100", GraphSpec{80, 100, 9.42, 6.72, false});
+    add_spec_case("25_approx_random_90_110", GraphSpec{90, 110, 5.31, 8.54, false});
 
     return cases;
 }
