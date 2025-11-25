@@ -154,22 +154,19 @@ class Graph
     template <class Func>
     void IterateNeighbours(Func func, Vertex v) const
     {
-        std::vector visited(vertices_, false);
         IterateOutEdges(
             [&](Edges, Vertex neighbour) {
                 func(neighbour);
-                visited[neighbour] = true;
             },
             v
         );
+
         IterateInEdges(
             [&](Edges, Vertex neighbour) {
-                if (visited[neighbour]) {
+                if (GetEdges(v, neighbour) > 0) {
                     return;
                 }
-
                 func(neighbour);
-                visited[neighbour] = false;
             },
             v
         );
