@@ -116,7 +116,7 @@ static void PrintVisualMatrix(std::ostream &os, const Graph &g_orig, const Graph
 
             if (added > 0) {
                 std::ostringstream ss;
-                ss << "(" << old_w << " + " << added << ")";
+                ss << "(" << old_w << "+" << added << ")";
                 grid[i][j] = ss.str();
             } else {
                 grid[i][j] = std::to_string(old_w);
