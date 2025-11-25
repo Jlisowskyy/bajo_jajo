@@ -50,6 +50,93 @@ std::pair<Graph, Graph> Read(const char *file)
     return std::make_pair(std::move(g1), std::move(g2));
 }
 
+static void PrintMappingTable(const Graph &g1, const Graph &g2, const Mapping &mapping)
+{
+    std::vector<std::string> headers = {"G1", "G2", "deg1", "deg2"};
+    std::vector<std::vector<std::string>> rows;
+    rows.reserve(g1.GetVertices());
+
+    for (Vertex i = 0; i < g1.GetVertices(); ++i) {
+        std::vector<std::string> row;
+
+        // G1 index
+        row.push_back([&]() {
+            std::ostringstream os;
+            os << i;
+            return os.str();
+        }());
+
+        // mapped G2 vertex
+        Vertex mapped = mapping.get_mapping_g1_to_g2(i);
+        row.push_back([&]() {
+            std::ostringstream os;
+            os << mapped;
+            return os.str();
+        }());
+
+        // deg1
+        row.push_back([&]() {
+            std::ostringstream os;
+            os << g1.GetDegree(i);
+            return os.str();
+        }());
+
+        // deg2
+        row.push_back([&]() {
+            std::ostringstream os;
+            os << g2.GetDegree(mapped);
+            return os.str();
+        }());
+
+        rows.push_back(std::move(row));
+    }
+
+    // Compute dynamic column widths
+    size_t cols = headers.size();
+    std::vector<size_t> widths(cols, 0);
+
+    for (size_t c = 0; c < cols; ++c) widths[c] = headers[c].size();
+
+    for (const auto &r : rows)
+        for (size_t c = 0; c < cols; ++c) widths[c] = std::max(widths[c], r[c].size());
+
+    for (size_t c = 0; c < cols; ++c) widths[c] += 2;  // left + right padding
+
+    // Top border
+    std::cout << "  +";
+    for (size_t c = 0; c < cols; ++c) std::cout << std::string(widths[c], '-') << "+";
+    std::cout << "\n";
+
+    // Header row
+    std::cout << "  |";
+    for (size_t c = 0; c < cols; ++c) {
+        std::ostringstream cell;
+        cell << " " << headers[c];
+        std::cout << std::left << std::setw((int)widths[c]) << cell.str() << "|";
+    }
+    std::cout << "\n";
+
+    // Header separator
+    std::cout << "  +";
+    for (size_t c = 0; c < cols; ++c) std::cout << std::string(widths[c], '-') << "+";
+    std::cout << "\n";
+
+    // Table rows
+    for (const auto &r : rows) {
+        std::cout << "  |";
+        for (size_t c = 0; c < cols; ++c) {
+            std::string cell = " " + r[c];
+            std::cout << std::left << std::setw((int)widths[c]) << cell << "|";
+        }
+        std::cout << "\n";
+    }
+
+    // Bottom border
+    std::cout << "  +";
+    for (size_t c = 0; c < cols; ++c) std::cout << std::string(widths[c], '-') << "+";
+    std::cout << "\n\n";
+}
+
 void Write(const Graph &g1, const Graph &g2, const std::vector<Mapping> &mappings, std::uint64_t time_spent_ns)
 {
     std::cout << "Execution Time: " << std::fixed << std::setprecision(4) << time_spent_ns / 1'000'000.0 << " ms\n";
@@ -66,14 +153,11 @@ void Write(const Graph &g1, const Graph &g2, const std::vector<Mapping> &mapping
         for (const auto &ext : extensions) {
             cost += static_cast<int>(ext.weight_needed - ext.weight_found);
         }
-
-        std::cout << "Result " << ":\n";
-        std::cout << "  - Cost (Added Edges): " << cost << "\n";
-        std::cout << "  - Mapping (G1 -> G2):\n";
-        for (Vertex i = 0; i < g1.GetVertices(); ++i) {
-            std::cout << "    " << i << " -> " << mapping.get_mapping_g1_to_g2(i) << "\n";
-        }
+        std::cout << "Cost (Added Edges): " << cost << "\n";
+        std::cout << "\n  === " << "Vertices mapping" << " === \n";
+        PrintMappingTable(g1, g2, mapping);
         if (cost > 0) {
+            std::cout << "  === " << "Minimal Ege Extension" << " === ";
             std::vector<std::string> headers = {"#", "G1 edge", "Mapped to G2 edge", "cost"};
 
             std::vector<std::vector<std::string>> rows;

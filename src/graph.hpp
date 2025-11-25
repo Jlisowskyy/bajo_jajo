@@ -187,6 +187,18 @@ class Graph
         return num_of_neighbours;
     }
 
+    NODISCARD Vertices GetDegree(const Vertex v) const
+    {
+        Vertices degree = 0;
+        IterateOutEdges(
+            [&](Edges edges, Vertex neighbour) {
+                degree += edges;
+            },
+            v
+        );
+        return degree;
+    }
+
     private:
     NODISCARD FUNC_INLINE Edges &GetEdges_(const Vertex u, const Vertex v)
     {
