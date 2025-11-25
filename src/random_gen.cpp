@@ -4,11 +4,11 @@
 #include <unordered_map>
 #include <unordered_set>
 
-static std::mt19937 g_Gen(kSeed);
-
 // in case of create_g1_based_on_g2 density_g1 should be in range [0.0, 1.0]
 std::pair<Graph, Graph> GenerateExample(const GraphSpec spec)
 {
+    std::mt19937 kGenerator(kSeed);
+
     assert(spec.size_g1 != 0);
     assert(spec.size_g2 != 0);
 
@@ -19,8 +19,8 @@ std::pair<Graph, Graph> GenerateExample(const GraphSpec spec)
     const auto edges_g2 = static_cast<std::uint32_t>(spec.density_g2 * spec.size_g2 * spec.size_g2);
     std::uniform_int_distribution<std::uint32_t> dist_g2(0, spec.size_g2 - 1);
     for (std::uint32_t i = 0; i < edges_g2; ++i) {
-        const auto v1 = static_cast<Vertex>(dist_g2(g_Gen));
-        const auto v2 = static_cast<Vertex>(dist_g2(g_Gen));
+        const auto v1 = static_cast<Vertex>(dist_g2(kGenerator));
+        const auto v2 = static_cast<Vertex>(dist_g2(kGenerator));
 
         g2.AddEdges(v1, v2);
     }
@@ -30,8 +30,8 @@ std::pair<Graph, Graph> GenerateExample(const GraphSpec spec)
         std::uniform_int_distribution<std::uint32_t> dist_g1(0, spec.size_g1 - 1);
 
         for (std::uint32_t i = 0; i < edges_g1; ++i) {
-            const auto v1 = static_cast<Vertex>(dist_g1(g_Gen));
-            const auto v2 = static_cast<Vertex>(dist_g1(g_Gen));
+            const auto v1 = static_cast<Vertex>(dist_g1(kGenerator));
+            const auto v2 = static_cast<Vertex>(dist_g1(kGenerator));
 
             g1.AddEdges(v1, v2);
         }
@@ -44,7 +44,7 @@ std::pair<Graph, Graph> GenerateExample(const GraphSpec spec)
         std::unordered_set<std::uint32_t> selected_vertices_g2{};
 
         while (selected_vertices_g2.size() != spec.size_g1) {
-            const auto v = static_cast<Vertex>(dist_g2(g_Gen));
+            const auto v = static_cast<Vertex>(dist_g2(kGenerator));
             selected_vertices_g2.insert(v);
         }
 
@@ -76,7 +76,7 @@ std::pair<Graph, Graph> GenerateExample(const GraphSpec spec)
         const double removal_prob = 1.0 - spec.density_g1;
         g1.IterateEdges([&](const Edges edges, const Vertex u, const Vertex v) {
             for (std::uint32_t i = 0; i < edges; ++i) {
-                if (dist(g_Gen) < removal_prob) {
+                if (dist(kGenerator) < removal_prob) {
                     g1.RemoveEdges(u, v);
                 }
             }

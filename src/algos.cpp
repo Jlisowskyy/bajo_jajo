@@ -537,11 +537,11 @@ NODISCARD std::vector<Mapping> ApproxAStar(const Graph &g1, const Graph &g2, int
         return ApproxAStar_<30>(g1, g2, k);
     }
     if (g2.GetVertices() <= 80) {
-        return ApproxAStar_<15>(g1, g2, k);
+        return ApproxAStar_<12>(g1, g2, k);
     }
 
     if (g2.GetVertices() <= 90) {
-        return ApproxAStar_<8>(g1, g2, k);
+        return ApproxAStar_<5>(g1, g2, k);
     }
 
     if (g2.GetVertices() <= 100) {
