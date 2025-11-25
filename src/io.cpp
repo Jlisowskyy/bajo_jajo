@@ -140,6 +140,33 @@ static void PrintVisualMatrix(std::ostream &os, const Graph &g_orig, const Graph
     }
 }
 
+static void PrintMappingTable(std::ostream &os, const Mapping &mapping, const Vertices g1_size)
+{
+    os << "\n=== Vertex Mapping ===\n";
+
+    const int col_width  = 12;
+    auto print_separator = [&]() {
+        os << "  +" << std::string(col_width, '-') << "+" << std::string(col_width, '-') << "+\n";
+    };
+
+    print_separator();
+    os << "  |" << std::left << std::setw(col_width) << " G1 Vertex"
+       << "|" << std::left << std::setw(col_width) << " G2 Vertex" << "|\n";
+    print_separator();
+
+    for (Vertex i = 0; i < g1_size; ++i) {
+        MappedVertex mapped_to = mapping.get_mapping_g1_to_g2(i);
+
+        std::string g1_str = " " + std::to_string(i);
+        std::string g2_str = (mapped_to != kUnmappedVertex) ? " " + std::to_string(mapped_to) : " -";
+
+        os << "  |" << std::left << std::setw(col_width) << g1_str << "|" << std::left << std::setw(col_width) << g2_str
+           << "|\n";
+    }
+    print_separator();
+    os << "\n";
+}
+
 // ------------------------------
 // Public API Implementations
 // ------------------------------
@@ -209,6 +236,7 @@ void Write(const Graph &g1, const Graph &g2, const std::vector<Mapping> &mapping
     double time_ms = time_spent_ns / 1'000'000.0;
 
     // 1. Time
+    std::cout << "\n=== Execution Summary ===\n";
     std::cout << "Execution Time: " << std::fixed << std::setprecision(4) << time_ms << " ms\n";
 
     if (mappings.empty()) {
@@ -226,8 +254,8 @@ void Write(const Graph &g1, const Graph &g2, const std::vector<Mapping> &mapping
     }
     std::cout << "Cost (Added Edges): " << cost << "\n";
 
-    // 3. Visual Matrix (only if size < 20)
-    if (g2.GetVertices() < 20) {
+    // 3. Visual Matrix (only if size < 15)
+    if (g2.GetVertices() < 15) {
         Graph g_extended = GetMinimalExtension(g1, g2, mapping);
         std::cout << "\n=== Modified G2 Adjacency Matrix ===\n";
         std::cout << "(Legend: 'old' or '(old + added)')\n\n";
@@ -238,6 +266,9 @@ void Write(const Graph &g1, const Graph &g2, const std::vector<Mapping> &mapping
     if (!extensions.empty()) {
         PrintExtensionTable(std::cout, extensions);
     }
+
+    // 5. Mapping Table
+    PrintMappingTable(std::cout, mapping, g1.GetVertices());
 }
 
 void WriteResult(
@@ -262,15 +293,21 @@ void WriteResult(
     }
     double time_ms = time_spent_ns / 1'000'000.0;
 
-    // 1. Standard Adjacency Matrix (Extended)
-    const auto size = g_extended.GetVertices();
-    fs << size << "\n";
-    for (Vertex i = 0; i < size; ++i) {
-        for (Vertex j = 0; j < size; ++j) {
-            fs << g_extended.GetEdges(i, j) << (j == size - 1 ? "" : " ");
+    auto write_g = [&](const Graph &g) {
+        const auto size = g.GetVertices();
+        fs << size << "\n";
+        for (Vertex i = 0; i < size; ++i) {
+            for (Vertex j = 0; j < size; ++j) {
+                fs << g.GetEdges(i, j) << (j == size - 1 ? "" : " ");
+            }
+            fs << "\n";
         }
-        fs << "\n";
-    }
+    };
+
+    // 1. Standard Adjacency Matrix (Extended)
+    write_g(g1);
+    write_g(g2);
+    write_g(g_extended);
 
     // 2. Visual Matrix (Regardless of size)
     fs << "\n=== Visual Representation of Changes ===\n";
@@ -278,9 +315,13 @@ void WriteResult(
     PrintVisualMatrix(fs, g2, g_extended);
 
     // 3. Time & Cost
+    fs << "\n=== Execution Summary ===\n";
     fs << "\nExecution Time: " << std::fixed << std::setprecision(4) << time_ms << " ms\n";
     fs << "Cost (Added Edges): " << cost << "\n";
 
     // 4. Minimal Edge Extension Table
     PrintExtensionTable(fs, extensions);
+
+    // 5. Mapping Table
+    PrintMappingTable(fs, mapping, g1.GetVertices());
 }
