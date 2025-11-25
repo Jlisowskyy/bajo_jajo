@@ -2,17 +2,146 @@
 
 #include "algos.hpp"
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <tuple>
 #include <vector>
 
 // ------------------------------
-// implementations
+// Helpers Implementations
+// ------------------------------
+
+static void PrintExtensionTable(std::ostream &os, const std::vector<EdgeExtension> &extensions)
+{
+    if (extensions.empty()) {
+        return;
+    }
+
+    os << "\n=== Minimal Edge Extension ===\n";
+    std::vector<std::string> headers = {"#", "G1 edge", "Mapped to G2 edge", "Cost"};
+
+    std::vector<std::vector<std::string>> rows;
+    int idx = 1;
+    for (const auto &ext : extensions) {
+        std::vector<std::string> row;
+
+        row.push_back(std::to_string(idx++));
+
+        {
+            std::ostringstream ss;
+            ss << "(" << ext.u << "," << ext.v << ") [" << ext.weight_needed << "]";
+            row.push_back(ss.str());
+        }
+
+        {
+            std::ostringstream ss;
+            ss << "(" << ext.mapped_u << "," << ext.mapped_v << ") [" << ext.weight_found << "]";
+            row.push_back(ss.str());
+        }
+
+        {
+            int delta = static_cast<int>(ext.weight_needed) - static_cast<int>(ext.weight_found);
+            std::ostringstream ss;
+            if (delta > 0)
+                ss << "+";  // should always be positive in extension context
+            ss << delta;
+            row.push_back(ss.str());
+        }
+
+        rows.push_back(std::move(row));
+    }
+
+    const size_t cols = headers.size();
+    std::vector<size_t> widths(cols, 0);
+    for (size_t c = 0; c < cols; ++c) widths[c] = headers[c].size();
+    for (const auto &r : rows) {
+        for (size_t c = 0; c < cols; ++c) {
+            if (c < r.size())
+                widths[c] = std::max(widths[c], r[c].size());
+        }
+    }
+    for (size_t c = 0; c < cols; ++c) widths[c] += 2;
+
+    auto print_border = [&](char junction = '+', char dash = '-') {
+        os << "  " << junction;
+        for (size_t c = 0; c < cols; ++c) {
+            os << std::string(widths[c], dash) << junction;
+        }
+        os << "\n";
+    };
+
+    print_border();
+    os << "  |";
+    for (size_t c = 0; c < cols; ++c) {
+        std::ostringstream cell;
+        cell << " " << headers[c];
+        os << std::left << std::setw((int)widths[c]) << cell.str() << "|";
+    }
+    os << "\n";
+    print_border();
+
+    for (const auto &r : rows) {
+        os << "  |";
+        for (size_t c = 0; c < cols; ++c) {
+            std::string cell = (c < r.size() ? r[c] : "");
+            cell             = " " + cell;
+            if (c == 3)
+                os << std::right << std::setw((int)widths[c]) << cell << "|";
+            else
+                os << std::left << std::setw((int)widths[c]) << cell << "|";
+        }
+        os << "\n";
+    }
+    print_border();
+    os << "\n";
+}
+
+static void PrintVisualMatrix(std::ostream &os, const Graph &g_orig, const Graph &g_ext)
+{
+    const Vertices size = g_orig.GetVertices();
+
+    std::vector<std::vector<std::string>> grid(size, std::vector<std::string>(size));
+
+    for (Vertex i = 0; i < size; ++i) {
+        for (Vertex j = 0; j < size; ++j) {
+            Edges old_w = g_orig.GetEdges(i, j);
+            Edges new_w = g_ext.GetEdges(i, j);
+            Edges added = (new_w > old_w) ? (new_w - old_w) : 0;
+
+            if (added > 0) {
+                std::ostringstream ss;
+                ss << "(" << old_w << " + " << added << ")";
+                grid[i][j] = ss.str();
+            } else {
+                grid[i][j] = std::to_string(old_w);
+            }
+        }
+    }
+
+    std::vector<size_t> col_widths(size, 0);
+    for (Vertex j = 0; j < size; ++j) {
+        for (Vertex i = 0; i < size; ++i) {
+            col_widths[j] = std::max(col_widths[j], grid[i][j].length());
+        }
+        col_widths[j] += 1;
+    }
+
+    for (Vertex i = 0; i < size; ++i) {
+        for (Vertex j = 0; j < size; ++j) {
+            os << std::right << std::setw((int)col_widths[j]) << grid[i][j] << " ";
+        }
+        os << "\n";
+    }
+}
+
+// ------------------------------
+// Public API Implementations
 // ------------------------------
 
 std::pair<Graph, Graph> Read(const char *file)
@@ -50,224 +179,6 @@ std::pair<Graph, Graph> Read(const char *file)
     return std::make_pair(std::move(g1), std::move(g2));
 }
 
-static void PrintMappingTable(const Graph &g1, const Graph &g2, const Mapping &mapping)
-{
-    std::vector<std::string> headers = {"G1", "G2", "deg1", "deg2"};
-    std::vector<std::vector<std::string>> rows;
-    rows.reserve(g1.GetVertices());
-
-    for (Vertex i = 0; i < g1.GetVertices(); ++i) {
-        std::vector<std::string> row;
-
-        // G1 index
-        row.push_back([&]() {
-            std::ostringstream os;
-            os << i;
-            return os.str();
-        }());
-
-        // mapped G2 vertex
-        Vertex mapped = mapping.get_mapping_g1_to_g2(i);
-        row.push_back([&]() {
-            std::ostringstream os;
-            os << mapped;
-            return os.str();
-        }());
-
-        // deg1
-        row.push_back([&]() {
-            std::ostringstream os;
-            os << g1.GetDegree(i);
-            return os.str();
-        }());
-
-        // deg2
-        row.push_back([&]() {
-            std::ostringstream os;
-            os << g2.GetDegree(mapped);
-            return os.str();
-        }());
-
-        rows.push_back(std::move(row));
-    }
-
-    // Compute dynamic column widths
-    size_t cols = headers.size();
-    std::vector<size_t> widths(cols, 0);
-
-    for (size_t c = 0; c < cols; ++c) widths[c] = headers[c].size();
-
-    for (const auto &r : rows)
-        for (size_t c = 0; c < cols; ++c) widths[c] = std::max(widths[c], r[c].size());
-
-    for (size_t c = 0; c < cols; ++c) widths[c] += 2;  // left + right padding
-
-    // Top border
-    std::cout << "  +";
-    for (size_t c = 0; c < cols; ++c) std::cout << std::string(widths[c], '-') << "+";
-    std::cout << "\n";
-
-    // Header row
-    std::cout << "  |";
-    for (size_t c = 0; c < cols; ++c) {
-        std::ostringstream cell;
-        cell << " " << headers[c];
-        std::cout << std::left << std::setw((int)widths[c]) << cell.str() << "|";
-    }
-    std::cout << "\n";
-
-    // Header separator
-    std::cout << "  +";
-    for (size_t c = 0; c < cols; ++c) std::cout << std::string(widths[c], '-') << "+";
-    std::cout << "\n";
-
-    // Table rows
-    for (const auto &r : rows) {
-        std::cout << "  |";
-        for (size_t c = 0; c < cols; ++c) {
-            std::string cell = " " + r[c];
-            std::cout << std::left << std::setw((int)widths[c]) << cell << "|";
-        }
-        std::cout << "\n";
-    }
-
-    // Bottom border
-    std::cout << "  +";
-    for (size_t c = 0; c < cols; ++c) std::cout << std::string(widths[c], '-') << "+";
-    std::cout << "\n\n";
-}
-
-void Write(const Graph &g1, const Graph &g2, const std::vector<Mapping> &mappings, std::uint64_t time_spent_ns)
-{
-    std::cout << "Execution Time: " << std::fixed << std::setprecision(4) << time_spent_ns / 1'000'000.0 << " ms\n";
-
-    // --- Results ---
-    if (mappings.empty()) {
-        std::cout << "No valid mapping found.\n";
-        return;
-    }
-    for (const auto &mapping : mappings) {
-        const std::vector<EdgeExtension> extensions = GetMinimalEdgeExtension(g1, g2, mapping);
-
-        int cost = 0;
-        for (const auto &ext : extensions) {
-            cost += static_cast<int>(ext.weight_needed - ext.weight_found);
-        }
-        std::cout << "Cost (Added Edges): " << cost << "\n";
-        std::cout << "\n  === " << "Vertices mapping" << " === \n";
-        PrintMappingTable(g1, g2, mapping);
-        if (cost > 0) {
-            std::cout << "  === " << "Minimal Ege Extension" << " === ";
-            std::vector<std::string> headers = {"#", "G1 edge", "Mapped to G2 edge", "cost"};
-
-            std::vector<std::vector<std::string>> rows;
-            int idx = 1;
-            for (const auto &ext : extensions) {
-                std::vector<std::string> row;
-
-                // index
-                row.push_back([&]() {
-                    std::ostringstream os;
-                    os << idx;
-                    return os.str();
-                }());
-
-                // G1 edge "(u,v) [weight_needed]"
-                row.push_back([&]() {
-                    std::ostringstream os;
-                    os << "(" << ext.u << "," << ext.v << ") [" << ext.weight_needed << "]";
-                    return os.str();
-                }());
-
-                // Mapped pair "(mapped_u,mapped_v) [weight_found]"
-                row.push_back([&]() {
-                    std::ostringstream os;
-                    os << "(" << ext.mapped_u << "," << ext.mapped_v << ") [" << ext.weight_found << "]";
-                    return os.str();
-                }());
-
-                // cost delta with sign
-                row.push_back([&]() {
-                    int delta = static_cast<int>(ext.weight_needed) - static_cast<int>(ext.weight_found);
-                    std::ostringstream os;
-                    if (delta >= 0)
-                        os << "+";
-                    os << delta;
-                    return os.str();
-                }());
-
-                rows.push_back(std::move(row));
-                ++idx;
-            }
-
-            // Compute column widths (max of header and all rows)
-            const size_t cols = headers.size();
-            std::vector<size_t> widths(cols, 0);
-            for (size_t c = 0; c < cols; ++c) widths[c] = headers[c].size();
-            for (const auto &r : rows) {
-                for (size_t c = 0; c < cols; ++c) {
-                    if (c < r.size())
-                        widths[c] = std::max(widths[c], r[c].size());
-                }
-            }
-
-            // Add minimal padding (1 space on left and right inside the cell)
-            for (size_t c = 0; c < cols; ++c) widths[c] += 2;  // one leading, one trailing space
-
-            // Print top border
-            std::cout << "\n  +";
-            for (size_t c = 0; c < cols; ++c) {
-                std::cout << std::string(widths[c], '-') << "+";
-            }
-            std::cout << "\n";
-
-            // Print header row
-            std::cout << "  |";
-            for (size_t c = 0; c < cols; ++c) {
-                // print header centered-ish: we'll left-align the text with one leading space included already in
-                // widths
-                std::ostringstream cell;
-                cell << " " << headers[c];  // leading space
-                std::cout << std::left << std::setw((int)widths[c]) << cell.str() << "|";
-            }
-            std::cout << "\n";
-
-            // Print header-bottom border
-            std::cout << "  +";
-            for (size_t c = 0; c < cols; ++c) {
-                std::cout << std::string(widths[c], '-') << "+";
-            }
-            std::cout << "\n";
-
-            // Print rows
-            for (const auto &r : rows) {
-                std::cout << "  |";
-                for (size_t c = 0; c < cols; ++c) {
-                    std::string cell = (c < r.size() ? r[c] : "");
-                    // add one leading space to visually separate from border
-                    cell = " " + cell;
-
-                    // For numeric-looking "cost" column, right-align; others left-align
-                    if (c == 3) {  // cost column (0-based index)
-                        std::cout << std::right << std::setw((int)widths[c]) << cell << "|";
-                        std::cout << std::left;  // reset to left for next columns
-                    } else {
-                        std::cout << std::left << std::setw((int)widths[c]) << cell << "|";
-                    }
-                }
-                std::cout << "\n";
-            }
-
-            // Print bottom border
-            std::cout << "  +";
-            for (size_t c = 0; c < cols; ++c) {
-                std::cout << std::string(widths[c], '-') << "+";
-            }
-            std::cout << "\n\n";
-        }
-    }
-}
-
 void Write(const char *file, const std::tuple<Graph, Graph> &graphs)
 {
     std::ofstream file_stream(file);
@@ -277,44 +188,99 @@ void Write(const char *file, const std::tuple<Graph, Graph> &graphs)
 
     const auto &[g1, g2] = graphs;
 
-    const auto size1 = g1.GetVertices();
-    file_stream << size1 << "\n";
-    for (Vertex i = 0; i < size1; ++i) {
-        for (Vertex j = 0; j < size1; ++j) {
-            file_stream << g1.GetEdges(i, j) << (j == size1 - 1 ? "" : " ");
+    auto write_g = [&](const Graph &g) {
+        const auto size = g.GetVertices();
+        file_stream << size << "\n";
+        for (Vertex i = 0; i < size; ++i) {
+            for (Vertex j = 0; j < size; ++j) {
+                file_stream << g.GetEdges(i, j) << (j == size - 1 ? "" : " ");
+            }
+            file_stream << "\n";
         }
-        file_stream << "\n";
+    };
+
+    write_g(g1);
+    write_g(g2);
+}
+
+// --- Console Output Implementation (Requirement A) ---
+void Write(const Graph &g1, const Graph &g2, const std::vector<Mapping> &mappings, std::uint64_t time_spent_ns)
+{
+    double time_ms = time_spent_ns / 1'000'000.0;
+
+    // 1. Time
+    std::cout << "Execution Time: " << std::fixed << std::setprecision(4) << time_ms << " ms\n";
+
+    if (mappings.empty()) {
+        std::cout << "No valid mapping found.\n";
+        return;
     }
 
-    const auto size2 = g2.GetVertices();
-    file_stream << size2 << "\n";
-    for (Vertex i = 0; i < size2; ++i) {
-        for (Vertex j = 0; j < size2; ++j) {
-            file_stream << g2.GetEdges(i, j) << (j == size2 - 1 ? "" : " ");
-        }
-        file_stream << "\n";
+    const Mapping &mapping                      = mappings[0];
+    const std::vector<EdgeExtension> extensions = GetMinimalEdgeExtension(g1, g2, mapping);
+
+    // 2. Cost
+    int cost = 0;
+    for (const auto &ext : extensions) {
+        cost += static_cast<int>(ext.weight_needed - ext.weight_found);
+    }
+    std::cout << "Cost (Added Edges): " << cost << "\n";
+
+    // 3. Visual Matrix (only if size < 20)
+    if (g2.GetVertices() < 20) {
+        Graph g_extended = GetMinimalExtension(g1, g2, mapping);
+        std::cout << "\n=== Modified G2 Adjacency Matrix ===\n";
+        std::cout << "(Legend: 'old' or '(old + added)')\n\n";
+        PrintVisualMatrix(std::cout, g2, g_extended);
+    }
+
+    // 4. Minimal Edge Extension
+    if (!extensions.empty()) {
+        PrintExtensionTable(std::cout, extensions);
     }
 }
 
-void WriteResult(const char *file, const Graph &g)
+void WriteResult(
+    const char *file, const Graph &g1, const Graph &g2, const Mapping &mapping, std::uint64_t time_spent_ns
+)
 {
-    // Create parent directories if they don't exist
     std::filesystem::path file_path(file);
     if (file_path.has_parent_path()) {
         std::filesystem::create_directories(file_path.parent_path());
     }
 
-    std::ofstream file_stream(file);
-    if (!file_stream.is_open()) {
+    std::ofstream fs(file);
+    if (!fs.is_open()) {
         throw std::runtime_error("Error: Could not open file for writing: " + std::string(file));
     }
 
-    const auto size = g.GetVertices();
-    file_stream << size << "\n";
+    Graph g_extended                            = GetMinimalExtension(g1, g2, mapping);
+    const std::vector<EdgeExtension> extensions = GetMinimalEdgeExtension(g1, g2, mapping);
+    int cost                                    = 0;
+    for (const auto &ext : extensions) {
+        cost += static_cast<int>(ext.weight_needed - ext.weight_found);
+    }
+    double time_ms = time_spent_ns / 1'000'000.0;
+
+    // 1. Standard Adjacency Matrix (Extended)
+    const auto size = g_extended.GetVertices();
+    fs << size << "\n";
     for (Vertex i = 0; i < size; ++i) {
         for (Vertex j = 0; j < size; ++j) {
-            file_stream << g.GetEdges(i, j) << (j == size - 1 ? "" : " ");
+            fs << g_extended.GetEdges(i, j) << (j == size - 1 ? "" : " ");
         }
-        file_stream << "\n";
+        fs << "\n";
     }
+
+    // 2. Visual Matrix (Regardless of size)
+    fs << "\n=== Visual Representation of Changes ===\n";
+    fs << "(Legend: 'old' or '(old + added)')\n\n";
+    PrintVisualMatrix(fs, g2, g_extended);
+
+    // 3. Time & Cost
+    fs << "\nExecution Time: " << std::fixed << std::setprecision(4) << time_ms << " ms\n";
+    fs << "Cost (Added Edges): " << cost << "\n";
+
+    // 4. Minimal Edge Extension Table
+    PrintExtensionTable(fs, extensions);
 }

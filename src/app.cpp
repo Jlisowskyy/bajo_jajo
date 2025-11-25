@@ -136,10 +136,6 @@ void ParseArgs(int argc, const char *const argv[])
     }
 
     // Logic validation
-    // 1. If internal tests, no file needed.
-    // 2. If gen-suite, no file needed.
-    // 3. If gen random, no file needed.
-    // 4. Otherwise, file is required.
     const bool is_special_mode =
         g_AppState.run_internal_tests || g_AppState.generate_graph || g_AppState.generate_suite;
 
@@ -162,8 +158,6 @@ void Run()
 
     if (g_AppState.run_internal_tests) {
         TRACE("Running internal tests...");
-        // TestApproxOnPrecise(ApproxAlgo::kApproxAStar, PreciseAlgo::kBruteForce);
-        // TestPreciseOnPrecise(PreciseAlgo::kAStar, PreciseAlgo::kBruteForce);
         TestApproxOnApprox(ApproxAlgo::kApproxAStar, ApproxAlgo::kApproxAStar5);
         return;
     }
@@ -205,7 +199,12 @@ void Run()
     }
     const auto t1                  = std::chrono::high_resolution_clock::now();
     const std::uint64_t time_spent = std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
+
     Write(g1, g2, mappings, time_spent);
-    const Graph g2extended = GetMinimalExtension(g1, g2, mappings[0]);
-    WriteResult(g_AppState.output, g2extended);
+    if (!mappings.empty()) {
+        WriteResult(g_AppState.output, g1, g2, mappings[0], time_spent);
+    } else {
+        Mapping empty_map(g1.GetVertices(), g2.GetVertices());
+        WriteResult(g_AppState.output, g1, g2, empty_map, time_spent);
+    }
 }
