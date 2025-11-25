@@ -1,5 +1,5 @@
 #include "random_gen.hpp"
-#include <assert.h>
+#include <cassert>
 #include <random>
 #include <unordered_map>
 #include <unordered_set>

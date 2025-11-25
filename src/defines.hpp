@@ -3,8 +3,12 @@
 
 #include <cstdint>
 
-#define NODISCARD   [[nodiscard]]
+#define NODISCARD [[nodiscard]]
+#if defined(_MSC_VER)
+#define FUNC_INLINE __forceinline
+#else
 #define FUNC_INLINE inline __attribute__((always_inline))
+#endif
 
 // static constexpr std::uint64_t kSeed = 0xAB98142De;
 // static constexpr std::uint64_t kSeed = 0x1;

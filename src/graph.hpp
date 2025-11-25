@@ -18,20 +18,20 @@ class Graph
     public:
     explicit Graph(const Vertices num_vertices) : vertices_(num_vertices)
     {
-        neighbourhood_matrix_ = new (std::align_val_t{64}) Edges[num_vertices * num_vertices]{};
+        neighbourhood_matrix_ = new Edges[num_vertices * num_vertices]{};
     }
 
     ~Graph()
     {
         if (neighbourhood_matrix_ != nullptr) {
-            operator delete[](neighbourhood_matrix_, std::align_val_t{64});
+            operator delete[](neighbourhood_matrix_);
         }
     }
 
     Graph(const Graph &other) : vertices_(other.vertices_), num_edges_(other.num_edges_)
     {
         const std::size_t matrix_size = static_cast<std::size_t>(vertices_) * vertices_;
-        neighbourhood_matrix_         = new (std::align_val_t{64}) Edges[matrix_size];
+        neighbourhood_matrix_         = new Edges[matrix_size];
         std::copy(other.neighbourhood_matrix_, other.neighbourhood_matrix_ + matrix_size, neighbourhood_matrix_);
     }
 
@@ -41,13 +41,13 @@ class Graph
             return *this;
         }
 
-        operator delete[](neighbourhood_matrix_, std::align_val_t{64});
+        operator delete[](neighbourhood_matrix_);
 
         vertices_  = other.vertices_;
         num_edges_ = other.num_edges_;
 
         const std::size_t matrix_size = static_cast<std::size_t>(vertices_) * vertices_;
-        neighbourhood_matrix_         = new (std::align_val_t{64}) Edges[matrix_size];
+        neighbourhood_matrix_         = new Edges[matrix_size];
         std::copy(other.neighbourhood_matrix_, other.neighbourhood_matrix_ + matrix_size, neighbourhood_matrix_);
 
         return *this;
@@ -67,7 +67,7 @@ class Graph
             return *this;
         }
 
-        operator delete[](neighbourhood_matrix_, std::align_val_t{64});
+        operator delete[](neighbourhood_matrix_);
 
         vertices_               = g.vertices_;
         num_edges_              = g.num_edges_;

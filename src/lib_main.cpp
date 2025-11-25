@@ -1,7 +1,4 @@
 #include <iostream>
-
-#include <bits/ostream.tcc>
-
 #include "app.hpp"
 
 extern int LibMain(const int argc, const char *const argv[])
