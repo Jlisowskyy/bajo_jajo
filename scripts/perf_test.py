@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from enum import IntEnum
 import subprocess
 import re
+import matplotlib.pyplot as plt
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 BUILD_DIR = f"{SCRIPT_DIR}/build"
@@ -13,7 +14,6 @@ EXEC_PATH = f"{SCRIPT_DIR}/tajo_2025"
 OUT_DIR = f"{SCRIPT_DIR}/workdir"
 RETRIES = 10
 RESULTS_DIR = f"{SCRIPT_DIR}/results"
-
 
 @dataclass
 class TestSpec:
@@ -28,51 +28,12 @@ class AlgoType(IntEnum):
   BruteForceAccurate = 1
   ApproxAStar = 2
 
-
-ACCURATE_NON_BASED_G1_EDGES_GROW: list[TestSpec] = [
-  TestSpec(
-    size_g1=10,
-    size_g2=11,
-    density_g1=0.4,
-    density_g2=0.8,
-    g1_based_on_g2=False,
-  ),
-  TestSpec(
-    size_g1=10,
-    size_g2=11,
-    density_g1=0.8,
-    density_g2=0.8,
-    g1_based_on_g2=False,
-  ),
-  TestSpec(
-    size_g1=10,
-    size_g2=11,
-    density_g1=1.2,
-    density_g2=0.8,
-    g1_based_on_g2=False,
-  ),
-  TestSpec(
-    size_g1=10,
-    size_g2=11,
-    density_g1=1.6,
-    density_g2=0.8,
-    g1_based_on_g2=False,
-  ),
-  TestSpec(
-    size_g1=10,
-    size_g2=11,
-    density_g1=2.0,
-    density_g2=0.8,
-    g1_based_on_g2=False,
-  ),
-  TestSpec(
-    size_g1=10,
-    size_g2=11,
-    density_g1=2.4,
-    density_g2=0.8,
-    g1_based_on_g2=False,
-  ),
-]
+def get_algo_name(algo_type: AlgoType) -> str:
+  if algo_type == AlgoType.AStarAccurate:
+    return "AccurateAStar"
+  if algo_type == AlgoType.BruteForceAccurate:
+    return "BruteForce"
+  return "ApproxAStar"
 
 def compile_project():
   os.makedirs(BUILD_DIR, exist_ok=True)
@@ -93,11 +54,7 @@ def generate_example(spec: TestSpec, prefix: str = "") -> str:
   os.system(command)
   return name
 
-import subprocess
-import re
-from typing import Tuple
-
-def time_algo(file: str, algo_type: AlgoType) -> Tuple[float, int]:
+def time_algo(file: str, algo_type: AlgoType) -> tuple[float, int]:
   opt = ""
   if algo_type == AlgoType.ApproxAStar:
     opt = "--approx"
@@ -130,7 +87,7 @@ def time_algo(file: str, algo_type: AlgoType) -> Tuple[float, int]:
   return exec_time_ms, rss_kb
 
 
-def time_algo_avg(file: str, algo_type: AlgoType, retries: int) -> Tuple[float, float]:
+def time_algo_avg(file: str, algo_type: AlgoType, retries: int) -> tuple[float, float]:
   time_sum = 0.0
   rss_sum = 0.0
 
@@ -141,13 +98,34 @@ def time_algo_avg(file: str, algo_type: AlgoType, retries: int) -> Tuple[float, 
 
   return time_sum / retries, rss_sum / retries
 
+def save_plots(test_name: str, algo_type: AlgoType, x_data: list, x_label: str, times: list[float], rss: list[float]):
+  algo_name = get_algo_name(algo_type)
+  filename = f"{RESULTS_DIR}/{test_name}_{algo_name}.png"
+
+  fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10))
+
+  ax1.plot(x_data, times, marker='o', linestyle='-', color='#1f77b4', linewidth=2)
+  ax1.set_title(f'Execution Time: {test_name.replace("_", " ").title()} ({algo_name})', fontsize=12, fontweight='bold')
+  ax1.set_xlabel(x_label, fontsize=10)
+  ax1.set_ylabel('Time (ms)', fontsize=10)
+  ax1.grid(True, which='both', linestyle='--', linewidth=0.5)
+
+  ax2.plot(x_data, rss, marker='s', linestyle='-', color='#ff7f0e', linewidth=2)
+  ax2.set_title(f'Memory Usage: {test_name.replace("_", " ").title()} ({algo_name})', fontsize=12, fontweight='bold')
+  ax2.set_xlabel(x_label, fontsize=10)
+  ax2.set_ylabel('RSS (KB)', fontsize=10)
+  ax2.grid(True, which='both', linestyle='--', linewidth=0.5)
+
+  plt.tight_layout(pad=3.0)
+  plt.savefig(filename)
+  plt.close()
 
 def run_non_accurate_non_based_test(algo_type: AlgoType):
-  assert algo_type in [AlgoType.AStarAccurate, AlgoType.AStarAccurate]
-
   cases = []
   files = []
-  results = []
+  x_values = []
+  times = []
+  mems = []
 
   for size_g2 in range(4, 13):
     cases.append(
@@ -159,19 +137,24 @@ def run_non_accurate_non_based_test(algo_type: AlgoType):
         g1_based_on_g2=False,
       )
     )
+    x_values.append(size_g2)
 
   for case in cases:
     files.append(generate_example(case))
 
   for file in files:
-    results.append(time_algo_avg(file, algo_type, RETRIES))
+    t, m = time_algo_avg(file, algo_type, RETRIES)
+    times.append(t)
+    mems.append(m)
+
+  save_plots("non_accurate_non_based_test", algo_type, x_values, "Size G2 (G1 = G2 - 1)", times, mems)
 
 def run_non_accurate_based_test(algo_type: AlgoType):
-  assert algo_type in [AlgoType.AStarAccurate, AlgoType.AStarAccurate]
-
   cases = []
   files = []
-  results = []
+  x_values = []
+  times = []
+  mems = []
 
   for size_g2 in range(4, 13):
     cases.append(
@@ -183,19 +166,24 @@ def run_non_accurate_based_test(algo_type: AlgoType):
         g1_based_on_g2=True,
       )
     )
+    x_values.append(size_g2)
 
   for case in cases:
     files.append(generate_example(case))
 
   for file in files:
-    results.append(time_algo_avg(file, algo_type, RETRIES))
+    t, m = time_algo_avg(file, algo_type, RETRIES)
+    times.append(t)
+    mems.append(m)
+
+  save_plots("non_accurate_based_test", algo_type, x_values, "Size G2 (G1 = G2 - 1)", times, mems)
 
 def run_non_accurate_non_based_dense_g1_test(algo_type: AlgoType):
-  assert algo_type in [AlgoType.AStarAccurate, AlgoType.AStarAccurate]
-
   cases = []
   files = []
-  results = []
+  x_values = []
+  times = []
+  mems = []
 
   for size_g2 in range(4, 13):
     cases.append(
@@ -207,36 +195,47 @@ def run_non_accurate_non_based_dense_g1_test(algo_type: AlgoType):
         g1_based_on_g2=False,
       )
     )
+    x_values.append(size_g2)
 
   for case in cases:
     files.append(generate_example(case))
 
   for file in files:
-    results.append(time_algo_avg(file, algo_type, RETRIES))
+    t, m = time_algo_avg(file, algo_type, RETRIES)
+    times.append(t)
+    mems.append(m)
+
+  save_plots("non_accurate_non_based_dense_g1_test", algo_type, x_values, "Size G2 (G1 = G2 - 1)", times, mems)
 
 def run_non_accurate_non_based_g1_edges_grow(algo_type: AlgoType):
-  assert algo_type in [AlgoType.AStarAccurate, AlgoType.AStarAccurate]
-
   cases = []
   files = []
-  results = []
+  x_values = []
+  times = []
+  mems = []
 
   for density_g1_coef in range(1, 7):
+    val = 0.4 * density_g1_coef
     cases.append(
       TestSpec(
         size_g1=10,
         size_g2=11,
-        density_g1=0.4 * density_g1_coef,
+        density_g1=val,
         density_g2=0.8,
         g1_based_on_g2=False,
       )
     )
+    x_values.append(val)
 
   for case in cases:
     files.append(generate_example(case))
 
   for file in files:
-    results.append(time_algo_avg(file, algo_type, RETRIES))
+    t, m = time_algo_avg(file, algo_type, RETRIES)
+    times.append(t)
+    mems.append(m)
+
+  save_plots("non_accurate_non_based_g1_edges_grow", algo_type, x_values, "Density G1", times, mems)
 
 def run_tests():
   run_non_accurate_non_based_test(AlgoType.BruteForceAccurate)
@@ -250,6 +249,7 @@ def run_tests():
 
 def main():
   os.makedirs(OUT_DIR, exist_ok=True)
+  os.makedirs(RESULTS_DIR, exist_ok=True)
 
   compile_project()
   run_tests()
