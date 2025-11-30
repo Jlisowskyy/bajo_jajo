@@ -2,7 +2,7 @@
 # Setup project
 # ------------------------------
 
-set(EXEC_NAME "PROJECT")
+set(EXEC_NAME "tajo_2025")
 set(LIB_NAME ${EXEC_NAME}Lib)
 set(TEST_NAME UnitTestTarget)
 
@@ -11,7 +11,7 @@ project(${EXEC_NAME} C CXX)
 
 set(PROJECT_NAME ${EXEC_NAME})
 set(PROJECT_VERSION "1.0")
-set(PROJECT_AUTHOR "Jakub Lisowski")
+set(PROJECT_AUTHOR "Jakub Lisowski, Michal Kwiatkowski, Piotr Tyrakowski, Lukasz Kryczka")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_C_STANDARD 17)
