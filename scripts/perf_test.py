@@ -5,7 +5,6 @@ from enum import IntEnum
 import subprocess
 import re
 import matplotlib.pyplot as plt
-import numpy as np
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 BUILD_DIR = f"{SCRIPT_DIR}/build"
@@ -13,8 +12,9 @@ CMAKE_DIR = f"{SCRIPT_DIR}/.."
 EXEC_BUILD_PATH = f"{BUILD_DIR}/src/tajo_2025"
 EXEC_PATH = f"{SCRIPT_DIR}/tajo_2025"
 OUT_DIR = f"{SCRIPT_DIR}/workdir"
-RETRIES = 3
+RETRIES = 5
 RESULTS_DIR = f"{SCRIPT_DIR}/results"
+X_LABEL = "Vertices of G2 (V(G1) = V(G2) - 1)"
 
 @dataclass
 class TestSpec:
@@ -106,19 +106,19 @@ def save_plots(test_name: str, algo_type: AlgoType, x_data: list, x_label: str, 
   fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 15))
 
   ax1.plot(x_data, times, marker='o', linestyle='-', color='#1f77b4', linewidth=2)
-  ax1.set_title(f'Execution Time (Linear): {test_name.replace("_", " ").title()} ({algo_name})', fontsize=12, fontweight='bold')
+  ax1.set_title(f'Execution Time (Linear): {algo_name}', fontsize=12, fontweight='bold')
   ax1.set_xlabel(x_label, fontsize=10)
   ax1.set_ylabel('Time (ms)', fontsize=10)
   ax1.grid(True, which='both', linestyle='--', linewidth=0.5)
 
   ax2.loglog(x_data, times, marker='o', linestyle='-', color='#1f77b4', linewidth=2)
-  ax2.set_title(f'Execution Time (Log-Log): {test_name.replace("_", " ").title()} ({algo_name})', fontsize=12, fontweight='bold')
+  ax2.set_title(f'Execution Time (Log-Log): {algo_name}', fontsize=12, fontweight='bold')
   ax2.set_xlabel(x_label, fontsize=10)
   ax2.set_ylabel('Time (ms)', fontsize=10)
   ax2.grid(True, which='both', linestyle='--', linewidth=0.5)
 
   ax3.plot(x_data, rss, marker='s', linestyle='-', color='#ff7f0e', linewidth=2)
-  ax3.set_title(f'Memory Usage: {test_name.replace("_", " ").title()} ({algo_name})', fontsize=12, fontweight='bold')
+  ax3.set_title(f'Memory Usage: {algo_name}', fontsize=12, fontweight='bold')
   ax3.set_xlabel(x_label, fontsize=10)
   ax3.set_ylabel('RSS (KB)', fontsize=10)
   ax3.grid(True, which='both', linestyle='--', linewidth=0.5)
@@ -134,7 +134,7 @@ def run_accurate_non_based_test(algo_type: AlgoType):
   times = []
   mems = []
 
-  for size_g2 in range(4, 13):
+  for size_g2 in range(4, 15):
     cases.append(
       TestSpec(
         size_g1=size_g2 - 1,
@@ -154,7 +154,7 @@ def run_accurate_non_based_test(algo_type: AlgoType):
     times.append(t)
     mems.append(m)
 
-  save_plots("accurate_non_based_test", algo_type, x_values, "Size G2 (G1 = G2 - 1)", times, mems)
+  save_plots("accurate_non_based_test", algo_type, x_values, X_LABEL, times, mems)
 
 def run_accurate_based_test(algo_type: AlgoType):
   cases = []
@@ -183,7 +183,7 @@ def run_accurate_based_test(algo_type: AlgoType):
     times.append(t)
     mems.append(m)
 
-  save_plots("accurate_based_test", algo_type, x_values, "Size G2 (G1 = G2 - 1)", times, mems)
+  save_plots("accurate_based_test", algo_type, x_values, X_LABEL, times, mems)
 
 def run_accurate_non_based_dense_g1_test(algo_type: AlgoType):
   cases = []
@@ -212,7 +212,7 @@ def run_accurate_non_based_dense_g1_test(algo_type: AlgoType):
     times.append(t)
     mems.append(m)
 
-  save_plots("accurate_non_based_dense_g1_test", algo_type, x_values, "Size G2 (G1 = G2 - 1)", times, mems)
+  save_plots("accurate_non_based_dense_g1_test", algo_type, x_values, X_LABEL, times, mems)
 
 def run_accurate_non_based_g1_edges_grow(algo_type: AlgoType):
   cases = []
@@ -271,7 +271,7 @@ def run_approx_non_based_test():
     times.append(t)
     mems.append(m)
 
-  save_plots("approx_non_based_test", AlgoType.ApproxAStar, x_values, "Size G2 (G1 = G2 - 1)", times, mems)
+  save_plots("approx_non_based_test", AlgoType.ApproxAStar, x_values, X_LABEL, times, mems)
 
 def run_approx_based_test():
   cases = []
@@ -300,7 +300,7 @@ def run_approx_based_test():
     times.append(t)
     mems.append(m)
 
-  save_plots("approx_based_test", AlgoType.ApproxAStar, x_values, "Size G2 (G1 = G2 - 1)", times, mems)
+  save_plots("approx_based_test", AlgoType.ApproxAStar, x_values, X_LABEL, times, mems)
 
 def run_approx_non_based_dense_g1_test():
   cases = []
@@ -329,7 +329,7 @@ def run_approx_non_based_dense_g1_test():
     times.append(t)
     mems.append(m)
 
-  save_plots("approx_non_based_dense_g1_test", AlgoType.ApproxAStar, x_values, "Size G2 (G1 = G2 - 1)", times, mems)
+  save_plots("approx_non_based_dense_g1_test", AlgoType.ApproxAStar, x_values, X_LABEL, times, mems)
 
 def run_approx_non_based_g1_edges_grow():
   cases = []
@@ -361,6 +361,36 @@ def run_approx_non_based_g1_edges_grow():
 
   save_plots("approx_non_based_g1_edges_grow", AlgoType.ApproxAStar, x_values, "Density G1", times, mems)
 
+def run_accurate_non_based_g2_edges_grow(algo_type: AlgoType):
+  cases = []
+  files = []
+  x_values = []
+  times = []
+  mems = []
+
+  for density_g2_coef in range(1, 7):
+    val = 0.4 * density_g2_coef
+    cases.append(
+      TestSpec(
+        size_g1=10,
+        size_g2=11,
+        density_g1=0.4,
+        density_g2=val,
+        g1_based_on_g2=False,
+      )
+    )
+    x_values.append(val)
+
+  for case in cases:
+    files.append(generate_example(case))
+
+  for file in files:
+    t, m = time_algo_avg(file, algo_type, RETRIES)
+    times.append(t)
+    mems.append(m)
+
+  save_plots("accurate_non_based_g2_edges_grow", algo_type, x_values, "Density G2", times, mems)
+
 def run_tests():
   run_accurate_non_based_test(AlgoType.BruteForceAccurate)
   run_accurate_non_based_test(AlgoType.AStarAccurate)
@@ -370,6 +400,8 @@ def run_tests():
   run_accurate_non_based_dense_g1_test(AlgoType.AStarAccurate)
   run_accurate_non_based_g1_edges_grow(AlgoType.BruteForceAccurate)
   run_accurate_non_based_g1_edges_grow(AlgoType.AStarAccurate)
+  run_accurate_non_based_g2_edges_grow(AlgoType.BruteForceAccurate)
+  run_accurate_non_based_g2_edges_grow(AlgoType.AStarAccurate)
 
   run_approx_non_based_test()
   run_approx_based_test()
