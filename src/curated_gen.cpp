@@ -50,10 +50,8 @@ static Graph BuildLadder(int len)
     int n = 2 * len;
     Graph g(static_cast<Vertices>(n));
     for (int i = 0; i < len; ++i) {
-        // Rung
         g.AddEdges(static_cast<Vertex>(i), static_cast<Vertex>(len + i));
         g.AddEdges(static_cast<Vertex>(len + i), static_cast<Vertex>(i));
-        // Rails
         if (i + 1 < len) {
             g.AddEdges(static_cast<Vertex>(i), static_cast<Vertex>(i + 1));
             g.AddEdges(static_cast<Vertex>(i + 1), static_cast<Vertex>(i));
@@ -108,9 +106,6 @@ static Graph BuildBinaryTree(int depth)
 // Brutal Multigraph Helpers
 // -----------------------------------------------------------------------------
 
-// Builds a K_n where edge (i,j) weight = (i*j + i + j) % modulus + 1
-// This creates a highly specific "fingerprint" for every edge.
-// Topological symmetry is complete (K_n), but edge-weight symmetry is broken chaotically.
 static Graph BuildArithmeticClique(int n, int modulus)
 {
     Graph g(static_cast<Vertices>(n));
@@ -125,14 +120,12 @@ static Graph BuildArithmeticClique(int n, int modulus)
     return g;
 }
 
-// Bipartite graph K_{n,n} with extremely heavy edges (hundreds/thousands).
-// Weights alternate: even rows get heavy weights, odd rows get light.
 static Graph BuildHeavyBipartite(int n, int heavy_weight)
 {
     int total_nodes = 2 * n;
     Graph g(static_cast<Vertices>(total_nodes));
-    for (int i = 0; i < n; ++i) {      // Left Set
-        for (int j = 0; j < n; ++j) {  // Right Set (indices n to 2n-1)
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
             int target = n + j;
             int w      = (i % 2 == 0) ? heavy_weight : 1;
             g.AddEdges(static_cast<Vertex>(i), static_cast<Vertex>(target), static_cast<Edges>(w));
@@ -210,58 +203,43 @@ std::vector<TestCase> GenerateAllCurated()
     // 3. BRUTAL MULTIGRAPH TESTS (High Multiplicity, Constraints)
     // =========================================================
 
-    // 11. The "Arithmetic" Clique (Exact)
-    // N=10. K10 is highly symmetric (10! perms), but edge weights are unique/chaotic.
     cases.push_back(TestCase{"11_accurate_prepared_8_10", []() {
-                                 // Modulus 20 creates weights 1..20.
                                  return std::make_pair(BuildArithmeticClique(8, 20), BuildArithmeticClique(10, 21));
                              }});
 
-    // 12. The "Heavy" Bipartite (Approx/Exact)
-    // N=20 (10+10). K10,10.
+
     cases.push_back(TestCase{"12_accurate_prepared_20_26", []() {
-                                 // Weight 1000 for "heavy" edges
                                  return std::make_pair(BuildHeavyBipartite(10, 1000), BuildHeavyBipartite(13, 1000));
                              }});
 
-    // 13. The "Deep Fail" (Exact)
-    // G1: K8 where ONE edge has weight 50. All others 10.
     cases.push_back(TestCase{"13_accurate_prepared_8_8", []() {
                                  Graph g1 = BuildClique(8);
-                                 // BuildClique makes edges=1. Let's pump them.
-                                 // Set all to 10.
+
                                  g1.IterateEdges([&](Edges, Vertex u, Vertex v) {
-                                     g1.AddEdges(u, v, 9);  // 1 + 9 = 10
+                                     g1.AddEdges(u, v, 9);
                                  });
-                                 // Make (0,1) heavy
-                                 g1.AddEdges(0, 1, 40);  // 10 + 40 = 50
+                                 g1.AddEdges(0, 1, 40);
                                  g1.AddEdges(1, 0, 40);
 
                                  Graph g2 = BuildClique(8);
                                  g2.IterateEdges([&](Edges, Vertex u, Vertex v) {
-                                     g2.AddEdges(u, v, 9);  // All 10
+                                     g2.AddEdges(u, v, 9);
                                  });
 
                                  return std::make_pair(std::move(g1), std::move(g2));
                              }});
 
-    // 14. The "Sparse vs Dense" Multigraph (Approx)
-    // G1 has few edges but HIGH weights.
-    // G2 has many edges but LOW weights.
     cases.push_back(TestCase{"14_approx_prepared_40_100", []() {
-                                 // G1: Ladder 20 (40 nodes), Rails weight 100.
                                  Graph g1 = BuildLadder(20);
                                  g1.IterateEdges([&](Edges, Vertex u, Vertex v) {
                                      g1.AddEdges(u, v, 99);
                                  });
 
-                                 // G2: Grid 10x10 (100 nodes), Standard weights (1).
                                  Graph g2 = BuildGrid(10, 10);
 
                                  return std::make_pair(std::move(g1), std::move(g2));
                              }});
 
-    // 15. The "Modulo" Ring (Exact)
     cases.push_back(TestCase{"15_accurate_prepared_9_10", []() {
                                  auto BuildModRing = [](int n) {
                                      Graph g(static_cast<Vertices>(n));
@@ -285,8 +263,6 @@ std::vector<TestCase> GenerateAllCurated()
                                      return GenerateExample(spec);
                                  }});
     };
-
-    // Subgraph Isomorphism Cases (create_g1_based_on_g2 = true)
 
     add_spec_case("16_approx_random_50_70", GraphSpec{50, 70, 1.0, 1.5, true});
     add_spec_case("17_approx_random_60_80", GraphSpec{60, 80, 0.9, 1.8, true});

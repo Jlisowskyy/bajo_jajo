@@ -41,7 +41,6 @@ static bool VerifyMapping(const Graph &g1, const Graph &g2, const Mapping &mappi
     const Vertices n1 = g1.GetVertices();
     const Vertices n2 = g2.GetVertices();
 
-    // 1. Check if mapping is consistent (g1_to_g2 and g2_to_g1 are inverses)
     for (Vertex i = 0; i < n1; ++i) {
         const MappedVertex mapped_g2_idx = mapping.get_mapping_g1_to_g2(i);
         if (mapped_g2_idx != -1) {
@@ -72,7 +71,6 @@ static bool VerifyMapping(const Graph &g1, const Graph &g2, const Mapping &mappi
         }
     }
 
-    // 2. Check mapped_count_ consistency
     Vertices actual_mapped_count = 0;
     for (Vertex i = 0; i < n1; ++i) {
         if (mapping.is_g1_mapped(i)) {
@@ -85,14 +83,13 @@ static bool VerifyMapping(const Graph &g1, const Graph &g2, const Mapping &mappi
         return false;
     }
 
-    // 3. Check if all g1 vertices are mapped if n1 <= n2
     if (n1 <= n2) {
         if (mapping.get_mapped_count() != n1) {
             std::cerr << "Error: Not all G1 vertices mapped when G1 size <= G2 size. Mapped: "
                       << mapping.get_mapped_count() << ", G1 size: " << n1 << std::endl;
             return false;
         }
-    } else {  // n1 > n2, max mapped_count can be n2
+    } else {
         if (mapping.get_mapped_count() > n2) {
             std::cerr << "Error: More G1 vertices mapped than available G2 vertices. Mapped: "
                       << mapping.get_mapped_count() << ", G2 size: " << n2 << std::endl;

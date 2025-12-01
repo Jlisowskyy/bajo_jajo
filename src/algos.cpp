@@ -15,13 +15,10 @@ std::vector<EdgeExtension> GetMinimalEdgeExtension(const Graph &g1, const Graph 
 {
     std::vector<EdgeExtension> extensions;
 
-    // Iterate G1 edges to find what is missing in G2
     g1.IterateEdges([&](const Edges edges_g1, const Vertex u, const Vertex v) {
         const MappedVertex mapped_u = mapping.get_mapping_g1_to_g2(u);
         const MappedVertex mapped_v = mapping.get_mapping_g1_to_g2(v);
 
-        // If vertices aren't mapped, we skip them here as that's a node mapping issue,
-        // but assuming full mapping for the solution provided:
         if (mapped_u != kUnmappedVertex && mapped_v != kUnmappedVertex) {
             const Edges edges_g2 = g2.GetEdges(static_cast<Vertex>(mapped_u), static_cast<Vertex>(mapped_v));
 
@@ -179,7 +176,6 @@ std::vector<Mapping> AccurateBruteForce(const Graph &g1, const Graph &g2, int k)
 
 static Vertex PickNextVertex_(const Graph &g1, const State &state)
 {
-    // If no vertices are mapped yet, choose the one with the most neighbors
     if (state.mapping.get_mapped_count() == 0) {
         Vertex best_v1         = ~static_cast<Vertex>(0);
         Vertices max_neighbors = 0;
@@ -218,8 +214,6 @@ static Vertex PickNextVertex_(const Graph &g1, const State &state)
             v1
         );
 
-        // Choose vertex with most mapped neighbors
-        // Break ties by choosing vertex with fewer total neighbors
         if (mapped_neighbours > max_mapped_neighbors ||
             (mapped_neighbours == max_mapped_neighbors && total_neighbours < min_total_neighbors)) {
             best_v1              = v1;
@@ -258,7 +252,6 @@ static int CalculateAssignmentCost_(const Graph &g1, const Graph &g2, const Mapp
 {
     int cost = 0;
 
-    // Iterate over all neighbors of v1 in G1 that are already mapped
     g1.IterateNeighbours(
         [&](const Vertex neighbour) {
             MappedVertex u2 = -1;
@@ -293,7 +286,6 @@ static int CalculateHeuristic_(const Graph &g1, const Graph &g2, const State &st
         }
         int min_cost = INT_MAX;
 
-        // Find the minimum cost assignment to any available vertex in G2
         for (Vertex v2 : state.availableVertices) {
             int cost_candidate = 0;
             g1.IterateNeighbours(
@@ -341,7 +333,6 @@ std::vector<Mapping> AccurateAStar(const Graph &g1, const Graph &g2, const int k
     }
     std::priority_queue<AStarState, std::vector<AStarState>, std::greater<AStarState>> pq;
 
-    // Initialize with empty mapping
     AStarState initial = AStarState(g1.GetVertices(), g2.GetVertices());
     pq.push(initial);
 
@@ -353,10 +344,8 @@ std::vector<Mapping> AccurateAStar(const Graph &g1, const Graph &g2, const int k
             return {current.state.mapping};
         }
 
-        // Choose next vertex to map
         const Vertex v1 = PickNextVertex_(g1, current.state);
 
-        // Try mapping v1 to each available vertex in G2
         for (Vertex v2 : current.state.availableVertices) {
             AStarState next_state;
             next_state.state = current.state;
@@ -365,7 +354,6 @@ std::vector<Mapping> AccurateAStar(const Graph &g1, const Graph &g2, const int k
             const int cost_increment = CalculateAssignmentCost_(g1, g2, current.state.mapping, v1, v2);
             next_state.g             = current.g + cost_increment;
 
-            // Calculate heuristic
             const int h  = CalculateHeuristic_(g1, g2, next_state.state);
             next_state.f = next_state.g + h;
 
@@ -509,7 +497,6 @@ NODISCARD std::vector<Mapping> ApproxAStar_(const Graph &g1, const Graph &g2, in
                 CalculateAssignmentCost_(g1, g2, best_state.state.mapping, next_vertex, mapping_candidate);
             next_state.g = best_state.g + cost_increment;
 
-            // Calculate heuristic
             const int h  = CalculateHeuristic_(g1, g2, next_state.state);
             next_state.f = next_state.g + h;
 

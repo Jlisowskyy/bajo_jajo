@@ -6,7 +6,6 @@
 
 #include <vector>
 
-// Structure to hold detailed information about edge mismatches
 struct EdgeExtension {
     Vertex u;             // G1 source
     Vertex v;             // G1 target
@@ -16,7 +15,6 @@ struct EdgeExtension {
     Edges weight_found;   // Weight in G2
 };
 
-// Computes the specific edges required to make the mapping valid
 NODISCARD std::vector<EdgeExtension> GetMinimalEdgeExtension(const Graph &g1, const Graph &g2, const Mapping &mapping);
 NODISCARD Graph GetMinimalExtension(const Graph &g1, const Graph &g2, const Mapping &mapping);
 

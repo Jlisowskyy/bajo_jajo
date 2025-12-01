@@ -135,7 +135,6 @@ void ParseArgs(int argc, const char *const argv[])
         }
     }
 
-    // Logic validation
     const bool is_special_mode =
         g_AppState.run_internal_tests || g_AppState.generate_graph || g_AppState.generate_suite;
 

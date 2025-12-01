@@ -48,7 +48,7 @@ static void PrintExtensionTable(std::ostream &os, const std::vector<EdgeExtensio
             int delta = static_cast<int>(ext.weight_needed) - static_cast<int>(ext.weight_found);
             std::ostringstream ss;
             if (delta > 0)
-                ss << "+";  // should always be positive in extension context
+                ss << "+";
             ss << delta;
             row.push_back(ss.str());
         }
